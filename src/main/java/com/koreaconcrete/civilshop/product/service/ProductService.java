@@ -2,9 +2,11 @@ package com.koreaconcrete.civilshop.product.service;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -22,6 +24,7 @@ import com.koreaconcrete.civilshop.common.domain.ProductMediaType;
 import com.koreaconcrete.civilshop.common.domain.ProductStatus;
 import com.koreaconcrete.civilshop.common.domain.RelationType;
 import com.koreaconcrete.civilshop.common.exception.BusinessException;
+import com.koreaconcrete.civilshop.common.storage.ImageStorageService;
 import com.koreaconcrete.civilshop.pricing.dto.PricingDtos.PriceSummary;
 import com.koreaconcrete.civilshop.pricing.service.PricingService;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.CategoryBrief;
@@ -62,6 +65,7 @@ public class ProductService {
 	private final CategoryService categoryService;
 	private final PricingService pricingService;
 	private final SearchService searchService;
+	private final ImageStorageService imageStorageService;
 
 	public ProductService(
 			ProductRepository productRepository,
@@ -72,7 +76,8 @@ public class ProductService {
 			CartItemRepository cartItemRepository,
 			CategoryService categoryService,
 			PricingService pricingService,
-			SearchService searchService
+			SearchService searchService,
+			ImageStorageService imageStorageService
 	) {
 		this.productRepository = productRepository;
 		this.productVariantRepository = productVariantRepository;
@@ -83,6 +88,7 @@ public class ProductService {
 		this.categoryService = categoryService;
 		this.pricingService = pricingService;
 		this.searchService = searchService;
+		this.imageStorageService = imageStorageService;
 	}
 
 	@Transactional
@@ -324,7 +330,16 @@ public class ProductService {
 			}
 		}
 		if (request.media() != null) {
-			productMediaRepository.findByProductIdOrderBySortOrderAscIdAsc(product.getId()).forEach(productMediaRepository::delete);
+			List<ProductMedia> existingMedia = productMediaRepository.findByProductIdOrderBySortOrderAscIdAsc(product.getId());
+			Set<String> retainedUrls = retainedMediaUrls(request.media());
+			List<String> staleUrls = existingMedia.stream()
+					.map(ProductMedia::getUrl)
+					.filter(StringUtils::hasText)
+					.map(String::trim)
+					.filter(url -> !retainedUrls.contains(url))
+					.distinct()
+					.toList();
+			existingMedia.forEach(productMediaRepository::delete);
 			for (MediaRequest mediaRequest : request.media()) {
 				ProductMedia media = new ProductMedia();
 				media.setProduct(product);
@@ -334,11 +349,12 @@ public class ProductService {
 				}
 				media.setVariant(variant);
 				media.setType(mediaRequest.type() == null ? ProductMediaType.IMAGE : mediaRequest.type());
-				media.setUrl(mediaRequest.url());
+				media.setUrl(mediaRequest.url().trim());
 				media.setAltText(mediaRequest.altText());
 				media.setSortOrder(mediaRequest.sortOrder() == null ? 0 : mediaRequest.sortOrder());
 				productMediaRepository.save(media);
 			}
+			deleteUnusedMedia(staleUrls);
 		}
 		if (request.relations() != null) {
 			productRelationRepository.findBySourceProductIdOrderBySortOrderAscIdAsc(product.getId()).forEach(productRelationRepository::delete);
@@ -349,6 +365,24 @@ public class ProductService {
 				relation.setRelationType(relationRequest.relationType() == null ? RelationType.RELATED : relationRequest.relationType());
 				relation.setSortOrder(relationRequest.sortOrder() == null ? 0 : relationRequest.sortOrder());
 				productRelationRepository.save(relation);
+			}
+		}
+	}
+
+	private Set<String> retainedMediaUrls(List<MediaRequest> mediaRequests) {
+		Set<String> urls = new LinkedHashSet<>();
+		for (MediaRequest mediaRequest : mediaRequests) {
+			if (StringUtils.hasText(mediaRequest.url())) {
+				urls.add(mediaRequest.url().trim());
+			}
+		}
+		return urls;
+	}
+
+	private void deleteUnusedMedia(List<String> staleUrls) {
+		for (String url : staleUrls) {
+			if (productMediaRepository.countByUrl(url) == 0) {
+				imageStorageService.delete(url);
 			}
 		}
 	}

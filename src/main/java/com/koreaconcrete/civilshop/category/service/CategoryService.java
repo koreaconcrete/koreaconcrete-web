@@ -16,6 +16,7 @@ import com.koreaconcrete.civilshop.category.dto.CategoryDtos.UpsertCategoryReque
 import com.koreaconcrete.civilshop.category.entity.Category;
 import com.koreaconcrete.civilshop.category.repository.CategoryRepository;
 import com.koreaconcrete.civilshop.common.exception.BusinessException;
+import com.koreaconcrete.civilshop.common.storage.ImageStorageService;
 import com.koreaconcrete.civilshop.product.repository.ProductRepository;
 
 @Service
@@ -25,10 +26,12 @@ public class CategoryService {
 
 	private final CategoryRepository categoryRepository;
 	private final ProductRepository productRepository;
+	private final ImageStorageService imageStorageService;
 
-	public CategoryService(CategoryRepository categoryRepository, ProductRepository productRepository) {
+	public CategoryService(CategoryRepository categoryRepository, ProductRepository productRepository, ImageStorageService imageStorageService) {
 		this.categoryRepository = categoryRepository;
 		this.productRepository = productRepository;
+		this.imageStorageService = imageStorageService;
 	}
 
 	public List<CategoryNode> tree(boolean includeInactive) {
@@ -84,12 +87,15 @@ public class CategoryService {
 		category.setDepth(parent == null ? 1 : parent.getDepth() + 1);
 		category.setName(request.name());
 		category.setSlug(resolveSlug(category, request));
-		category.setImageUrl(blankToNull(request.imageUrl()));
+		String previousImageUrl = category.getImageUrl();
+		String nextImageUrl = blankToNull(request.imageUrl());
+		category.setImageUrl(nextImageUrl);
 		if (request.sortOrder() != null) {
 			category.setSortOrder(request.sortOrder());
 		}
 		category.setActive(request.active() == null || request.active());
 		updateChildDepths(category);
+		deleteImageIfChanged(previousImageUrl, nextImageUrl);
 		return toDetail(category);
 	}
 
@@ -102,7 +108,9 @@ public class CategoryService {
 		if (productRepository.existsByCategoryId(id)) {
 			throw BusinessException.badRequest("상품이 연결된 카테고리는 삭제할 수 없습니다.");
 		}
+		String imageUrl = category.getImageUrl();
 		categoryRepository.delete(category);
+		imageStorageService.delete(imageUrl);
 	}
 
 	public Category getCategory(Long id) {
@@ -141,6 +149,12 @@ public class CategoryService {
 
 	private String blankToNull(String value) {
 		return StringUtils.hasText(value) ? value.trim() : null;
+	}
+
+	private void deleteImageIfChanged(String previousImageUrl, String nextImageUrl) {
+		if (previousImageUrl != null && !previousImageUrl.equals(nextImageUrl)) {
+			imageStorageService.delete(previousImageUrl);
+		}
 	}
 
 	private int nextSortOrder(Category parent) {

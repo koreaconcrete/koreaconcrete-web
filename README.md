@@ -72,6 +72,9 @@ API 기본 URL은 `frontend/assets/js/config.js`에서 현재 origin 기준 `/ap
 - `JWT_EXPIRATION_SECONDS`: access token 만료 초
 - `CORS_ALLOWED_ORIGINS`: 허용 origin 목록
 - `SPRING_PROFILES_ACTIVE`: `dev`, `test`, 운영 기본값 등
+- `APP_UPLOAD_PROVIDER`: `local` 또는 `gcs`
+- `APP_GCS_BUCKET`: GCS 이미지 버킷 이름
+- `APP_GCS_PUBLIC_URL_PREFIX`: GCS 이미지 공개 URL prefix. 비우면 `https://storage.googleapis.com/{bucket}` 사용
 
 ## Seed 데이터
 

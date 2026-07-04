@@ -9,5 +9,7 @@ import com.koreaconcrete.civilshop.product.entity.ProductMedia;
 public interface ProductMediaRepository extends JpaRepository<ProductMedia, Long> {
 	List<ProductMedia> findByProductIdOrderBySortOrderAscIdAsc(Long productId);
 
+	long countByUrl(String url);
+
 	void deleteByProductId(Long productId);
 }
