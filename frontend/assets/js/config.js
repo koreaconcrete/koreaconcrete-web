@@ -17,6 +17,14 @@
     }
   }
 
+  function storageRemove(key) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch (error) {
+      // Ignore storage access errors.
+    }
+  }
+
   function uuid() {
     if (window.crypto && typeof window.crypto.randomUUID === "function") {
       return window.crypto.randomUUID();
@@ -28,6 +36,26 @@
     });
   }
 
+  function isLocalHost() {
+    return ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
+  }
+
+  function apiBaseUrl() {
+    const fallback = window.location.origin + "/api/v1";
+    const stored = storageGet("civilshop_api_base");
+    if (!stored) return fallback;
+    try {
+      const url = new URL(stored, window.location.origin);
+      if (isLocalHost() || url.origin === window.location.origin) {
+        return url.href.replace(/\/$/, "");
+      }
+    } catch (error) {
+      // Invalid override values should fall back to the current origin.
+    }
+    storageRemove("civilshop_api_base");
+    return fallback;
+  }
+
   let sessionId = storageGet(sessionKey);
   if (!sessionId) {
     sessionId = "sess-" + uuid();
@@ -35,7 +63,7 @@
   }
 
   window.APP_CONFIG = {
-    API_BASE_URL: storageGet("civilshop_api_base") || window.location.origin + "/api/v1",
+    API_BASE_URL: apiBaseUrl(),
     SESSION_ID: sessionId
   };
 })();
