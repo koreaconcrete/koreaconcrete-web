@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>상품 입력</title>
+  <link rel="stylesheet" href="assets/css/reset.css"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
+  <header class="site-header"><div class="topbar"><a class="brand" href="admin-products.html">관리자 콘솔<small>상품 입력</small></a></div></header>
+  <div class="admin-shell">
+    <aside class="admin-sidebar"><nav></nav></aside>
+    <main class="admin-main">
+      <form id="admin-product-form" class="card admin-form">
+        <h1>상품 생성/수정</h1>
+        <section class="admin-form-section">
+          <div class="section-head compact"><h2>기본 정보</h2></div>
+          <div class="admin-form-grid">
+            <label class="admin-field">카테고리
+              <select class="input" name="categoryId" required>
+                <option value="">카테고리 선택</option>
+              </select>
+            </label>
+            <label class="admin-field">상품 상태
+              <select class="input" name="status">
+                <option value="DRAFT">임시저장</option>
+                <option value="ON_SALE">판매중</option>
+                <option value="QUOTE_ONLY">견적전용</option>
+                <option value="SOLD_OUT">품절</option>
+                <option value="HIDDEN">숨김</option>
+                <option value="DISCONTINUED">판매중단</option>
+                <option value="DELETED">삭제됨</option>
+              </select>
+            </label>
+            <label class="admin-field">상품명
+              <input class="input" name="name" placeholder="예: 원형수로관" required>
+            </label>
+            <label class="admin-field span-2">요약 설명
+              <input class="input" name="summary" placeholder="상품 카드와 상세 상단에 표시되는 짧은 설명">
+            </label>
+            <label class="admin-field span-2">상세 설명
+              <textarea name="description" placeholder="상품 상세에서 참고할 설명"></textarea>
+            </label>
+            <label class="admin-field span-2">검색어
+              <textarea name="searchKeywords" placeholder="예: 맨홀뚜껑, 전기맨홀, 통신맨홀, 집수정"></textarea>
+            </label>
+            <label class="admin-field">단위
+              <input class="input" name="unit" placeholder="예: 개, m, 본">
+            </label>
+            <label class="admin-field">원산지
+              <input class="input" name="originCountry" placeholder="예: 국산">
+            </label>
+            <label class="admin-field">제조사
+              <input class="input" name="manufacturer" placeholder="예: 한국콘크리트산업">
+            </label>
+            <label class="admin-field checkbox-field">
+              <input type="checkbox" name="customMade">
+              <span>주문제작 상품</span>
+            </label>
+          </div>
+        </section>
+        <section class="admin-form-section">
+          <div class="section-head compact"><h2>이미지 관리</h2></div>
+          <p class="muted">첫 번째 이미지는 상품 카드와 상세 상단의 대표 이미지로 사용됩니다. 두 번째 이후 이미지는 상세 설명 이미지로 표시됩니다.</p>
+          <div class="row admin-upload-row">
+            <label class="admin-field">이미지 파일
+              <input id="admin-image-upload" class="input" type="file" accept="image/*" multiple>
+            </label>
+            <button id="admin-image-upload-button" class="button" type="button">이미지 업로드</button>
+          </div>
+          <div id="admin-media-list" class="admin-media-list"></div>
+        </section>
+        <section class="admin-form-section">
+          <div class="section-head compact"><h2>상세 이미지 관리</h2></div>
+          <p class="muted">상품 상세의 상품 스펙 아래에 표시할 시공 이미지와 제품 규격 및 치수 이미지를 각각 등록합니다.</p>
+          <div id="admin-detail-media-list" class="admin-detail-media-list"></div>
+        </section>
+        <section class="admin-form-section">
+          <div class="section-head compact">
+            <h2>규격/가격 관리</h2>
+            <div class="row">
+              <button id="admin-variant-include-deleted" class="button" type="button" aria-pressed="false">삭제된 규격까지 보기</button>
+              <button id="admin-variant-add" class="button" type="button">규격 추가</button>
+            </div>
+          </div>
+          <p class="muted">규격명과 판매단가를 입력하면 상품 저장 시 함께 생성/수정됩니다. 판매하지 않는 규격은 상태를 변경해주세요.</p>
+          <div id="admin-variant-list" class="admin-variant-list"></div>
+        </section>
+        <section class="admin-form-section">
+          <div class="section-head compact"><h2>미리보기</h2></div>
+          <div class="admin-preview-grid">
+            <div>
+              <h3>상품 카드</h3>
+              <div id="admin-card-preview"></div>
+            </div>
+            <div>
+              <h3>상세 상단</h3>
+              <div id="admin-detail-preview"></div>
+            </div>
+          </div>
+        </section>
+        <button class="button primary">상품 정보 저장</button>
+        <div id="admin-product-form-state"></div>
+      </form>
+    </main>
+  </div>
+  <script src="assets/js/config.js"></script><script src="assets/js/api.js"></script><script src="assets/js/admin-products.js"></script>
+</body>
+</html>

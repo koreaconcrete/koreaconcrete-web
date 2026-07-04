@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>카테고리 관리</title>
+  <link rel="stylesheet" href="assets/css/reset.css"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
+  <header class="site-header"><div class="topbar"><a class="brand" href="admin.html">관리자 콘솔<small>카테고리</small></a></div></header>
+  <div class="admin-shell">
+    <aside class="admin-sidebar"><nav><a href="admin.html">대시보드</a><a href="admin-products.html">상품</a><a href="admin-freight.html">운반비</a><a href="admin-quotes.html">견적</a><a href="admin-consultations.html">상담</a><a href="admin-users.html">회원</a><a href="admin-admins.html">관리자 계정</a></nav></aside>
+    <main class="admin-main" id="admin-categories">
+      <h1>카테고리 관리</h1>
+      <form id="admin-category-form" class="card admin-form" style="margin:16px 0">
+        <div class="admin-form-grid">
+          <label class="admin-field">상위 카테고리
+            <select class="input" name="parentId">
+              <option value="">최상위 카테고리로 생성</option>
+            </select>
+          </label>
+          <label class="admin-field">노출 여부
+            <select class="input" name="active">
+              <option value="true">노출</option>
+              <option value="false">숨김</option>
+            </select>
+          </label>
+          <label class="admin-field">카테고리명
+            <input class="input" name="name" placeholder="예: 콘크리트제품" required>
+          </label>
+          <input type="hidden" name="imageUrl">
+        </div>
+        <div id="admin-category-image-preview" class="category-image-preview">
+          <span class="muted">대표 이미지가 등록되지 않았습니다.</span>
+        </div>
+        <div class="row admin-upload-row">
+          <label class="admin-field">대표 이미지 파일
+            <input id="admin-category-image-upload" class="input" type="file" accept="image/*">
+          </label>
+          <button id="admin-category-image-upload-button" class="button" type="button">이미지 업로드</button>
+          <button id="admin-category-image-remove-button" class="button danger" type="button" disabled>이미지 삭제</button>
+        </div>
+        <div class="row admin-form-actions">
+          <button id="admin-category-submit" class="button primary">생성</button>
+          <button id="admin-category-cancel" class="button" type="button" hidden>수정 취소</button>
+        </div>
+      </form>
+      <div id="admin-category-state"></div>
+      <table class="table"><thead><tr><th>이름</th><th>대표 이미지</th><th>노출</th><th>순서</th><th></th></tr></thead><tbody></tbody></table>
+    </main>
+  </div>
+  <script src="assets/js/config.js"></script><script src="assets/js/api.js"></script><script src="assets/js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>장바구니</title>
+  <link rel="stylesheet" href="assets/css/reset.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="site-header"><div class="topbar"><a class="brand" href="index.html">한국콘크리트산업<small>장바구니</small></a><nav class="nav"><a href="products.html">상품</a><a href="quote-new.html">견적요청</a></nav></div></header>
+  <main class="container">
+    <div class="page-title"><h1>장바구니</h1></div>
+    <div id="cart-wrap">
+      <table class="table cart-table">
+        <thead><tr><th>상품</th><th>규격</th><th>수량</th><th>단가</th><th>상품금액</th><th></th></tr></thead>
+        <tbody id="cart-items"></tbody>
+      </table>
+      <div id="cart-summary" class="cart-summary"></div>
+      <div class="row cart-actions"><a class="button" href="products.html">계속 담기</a><a class="button primary" href="quote-new.html">견적요청으로</a></div>
+    </div>
+  </main>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/cart.js"></script>
+</body>
+</html>

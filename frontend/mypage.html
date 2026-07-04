@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>마이페이지</title>
+  <link rel="stylesheet" href="assets/css/reset.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="site-header"><div class="topbar"><a class="brand" href="index.html">한국콘크리트산업<small>마이페이지</small></a><nav class="nav"><a href="products.html">상품</a><a href="cart.html">장바구니</a><button class="button" data-logout>로그아웃</button></nav></div></header>
+  <main class="container section">
+    <div class="grid mypage-layout">
+      <div id="mypage"></div>
+      <div class="card order-history-card"><h2>주문기록</h2><table class="table"><thead><tr><th>번호</th><th>회사</th><th>상태</th><th>일시</th></tr></thead><tbody id="my-quotes"></tbody></table></div>
+    </div>
+  </main>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/auth.js"></script>
+</body>
+</html>

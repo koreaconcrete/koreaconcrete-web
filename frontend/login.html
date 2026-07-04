@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>로그인</title>
+  <link rel="stylesheet" href="assets/css/reset.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="site-header"><div class="topbar"><a class="brand" href="index.html">한국콘크리트산업<small>로그인</small></a><nav class="nav"><a href="signup.html">회원가입</a><a href="products.html">상품</a></nav></div></header>
+  <main class="auth-main">
+    <section class="auth-card" aria-labelledby="login-title">
+      <div class="auth-heading">
+        <p class="eyebrow">기업 견적 계정</p>
+        <h1 id="login-title">로그인</h1>
+        <p>장바구니와 마이페이지 기능을 계속 사용하려면 로그인해주세요.</p>
+      </div>
+      <form id="login-form" class="auth-form">
+        <label class="field" for="login-email">아이디
+          <input id="login-email" class="input" type="text" name="email" placeholder="아이디" autocomplete="username" required>
+        </label>
+        <label class="field" for="login-password">비밀번호
+          <input id="login-password" class="input" type="password" name="password" placeholder="비밀번호" autocomplete="current-password" required>
+        </label>
+        <button class="button primary">로그인</button>
+        <div id="auth-state"></div>
+      </form>
+      <div class="auth-switch">
+        <span>아직 계정이 없나요?</span>
+        <a class="button" href="signup.html">회원가입</a>
+      </div>
+    </section>
+  </main>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: koreaconcrete-postgres
+    environment:
+      POSTGRES_DB: koreaconcrete
+      POSTGRES_USER: koreaconcrete
+      POSTGRES_PASSWORD: koreaconcrete
+      TZ: Asia/Seoul
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U koreaconcrete -d koreaconcrete"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres-data:
