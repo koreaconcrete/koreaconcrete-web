@@ -391,7 +391,12 @@
     const heroKeywordInput = document.querySelector("#hero-keyword");
     if (heroKeywordInput) {
       bindRecentSearch(heroKeywordInput, () => {
-        heroKeywordInput.closest("form")?.requestSubmit();
+        const form = heroKeywordInput.closest("form");
+        if (form && typeof form.requestSubmit === "function") {
+          form.requestSubmit();
+        } else if (form) {
+          form.submit();
+        }
       });
       heroKeywordInput.closest("form")?.addEventListener("submit", () => saveRecentSearch(heroKeywordInput.value));
     }
