@@ -58,10 +58,17 @@ jobs:
             SPRING_PROFILES_ACTIVE=prod
             DB_URL=${{ secrets.DB_URL }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
-            CORS_ALLOWED_ORIGINS="${{ vars.CORS_ALLOWED_ORIGINS }}"
             APP_UPLOAD_PROVIDER=gcs
             APP_GCS_BUCKET=${{ vars.APP_GCS_BUCKET }}
             APP_GCS_PUBLIC_URL_PREFIX=https://storage.googleapis.com/${{ vars.APP_GCS_BUCKET }}
           secrets: |
             DB_PASSWORD=${{ vars.DB_PASSWORD_SECRET_NAME }}:latest
             JWT_SECRET=${{ vars.JWT_SECRET_SECRET_NAME }}:latest
+
+      - name: Update CORS origins
+        run: >-
+          gcloud run services update "${SERVICE}"
+          --project "${PROJECT_ID}"
+          --region "${REGION}"
+          --update-env-vars "^@^CORS_ALLOWED_ORIGINS=${{ vars.CORS_ALLOWED_ORIGINS }}"
+          --quiet
