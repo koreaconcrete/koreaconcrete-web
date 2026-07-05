@@ -23,7 +23,19 @@
         <div class="field"><label>현장주소</label><input class="input" name="siteAddress" required></div>
         <div class="field"><label>희망납기</label><input class="input" type="date" name="requestedDeliveryDate"></div>
         <div class="field"><label>요청사항(선택)</label><textarea name="memo"></textarea></div>
-        <label class="row"><input type="checkbox" name="privacyAgreed" required> 개인정보 수집에 동의합니다.</label>
+        <section class="agreement-panel compact" aria-label="개인정보 수집 동의">
+          <div class="agreement-list">
+            <article class="agreement-item">
+              <div class="agreement-item-head">
+                <label class="agreement-check"><input type="checkbox" name="privacyAgreed" required> <span>개인정보 수집·이용 동의 <small>필수</small></span></label>
+                <button class="agreement-toggle" type="button" aria-expanded="false" aria-controls="quote-privacy-detail" data-agreement-toggle="quote-privacy-detail">자세히 보기</button>
+              </div>
+              <div class="agreement-detail" id="quote-privacy-detail" hidden>
+                <p>견적 접수와 연락을 위해 회사명, 담당자명, 연락처, 현장주소, 요청사항을 수집하며 견적 처리 및 이력 확인 목적으로 보관합니다.</p>
+              </div>
+            </article>
+          </div>
+        </section>
         <button class="button primary">견적요청 접수</button>
         <div id="quote-state"></div>
       </form>

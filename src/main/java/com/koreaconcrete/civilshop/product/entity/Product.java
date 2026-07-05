@@ -67,4 +67,7 @@ public class Product extends BaseTimeEntity {
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 30)
 	private ProductStatus status = ProductStatus.DRAFT;
+
+	@Column(nullable = false)
+	private Integer sortOrder = 0;
 }

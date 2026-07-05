@@ -32,10 +32,11 @@ public class AdminQuoteController {
 	@GetMapping
 	public PageResponse<QuoteResponse> list(
 			@RequestParam(required = false) QuoteStatus status,
+			@RequestParam(required = false) String bucket,
 			@RequestParam(defaultValue = "1") int page,
 			@RequestParam(defaultValue = "20") int size
 	) {
-		return quoteService.adminList(status, page, size);
+		return quoteService.adminList(status, bucket, page, size);
 	}
 
 	@Operation(summary = "관리자 견적 상세")

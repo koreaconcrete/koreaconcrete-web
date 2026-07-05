@@ -1,6 +1,8 @@
 (function () {
   const tokenKey = "civilshop_access_token";
   let cartMigrationPromise = null;
+  const brandTitle = "한국콘크리트 산업";
+  const brandIcon = "assets/images/brand/hk-favicon.png";
 
   function rawToken() {
     return localStorage.getItem(tokenKey);
@@ -56,18 +58,46 @@
     return Boolean(user && Array.isArray(user.roles) && roles.some((role) => user.roles.includes(role)));
   }
 
-  function headers(extra) {
+  function normalizedMethod(method) {
+    return String(method || "GET").toUpperCase();
+  }
+
+  function shouldSkipAuth(path, method) {
+    const methodName = normalizedMethod(method);
+    return methodName === "POST" && (path.startsWith("/auth/login") || path.startsWith("/auth/signup"));
+  }
+
+  function isPublicRetryPath(path, method) {
+    const methodName = normalizedMethod(method);
+    if (methodName === "GET") {
+      return path.startsWith("/products") || path.startsWith("/categories") || path.startsWith("/search");
+    }
+    return methodName === "POST" && path.startsWith("/consultations");
+  }
+
+  function headers(path, method, extra, withoutAuth) {
     const base = {
       "Content-Type": "application/json",
       "X-Session-Id": window.APP_CONFIG.SESSION_ID
     };
-    if (token()) base.Authorization = "Bearer " + token();
-    return Object.assign(base, extra || {});
+    const accessToken = token();
+    if (!withoutAuth && !shouldSkipAuth(path, method) && accessToken) {
+      base.Authorization = "Bearer " + accessToken;
+    }
+    const merged = Object.assign(base, extra || {});
+    if (withoutAuth || shouldSkipAuth(path, method)) {
+      delete merged.Authorization;
+    }
+    return merged;
   }
 
   async function request(path, options) {
+    return requestWithAuthRetry(path, options || {}, false);
+  }
+
+  async function requestWithAuthRetry(path, options, retryingWithoutAuth) {
     const init = Object.assign({ method: "GET" }, options || {});
-    init.headers = headers(init.headers);
+    init.headers = headers(path, init.method, init.headers, retryingWithoutAuth);
     if (init.body && typeof init.body !== "string") {
       init.body = JSON.stringify(init.body);
     }
@@ -83,8 +113,13 @@
     }
     if (!response.ok) {
       const message = payload && payload.message ? payload.message : "요청 처리 중 오류가 발생했습니다.";
-      if (response.status === 401 || message.includes("토큰")) {
+      const tokenIssue = response.status === 401 || message.includes("토큰");
+      const usedAuthorization = Boolean(init.headers.Authorization);
+      if (tokenIssue) {
         setToken(null);
+        if (usedAuthorization && !retryingWithoutAuth && isPublicRetryPath(path, init.method)) {
+          return requestWithAuthRetry(path, options, true);
+        }
       }
       const error = new Error(message);
       error.code = payload && payload.code;
@@ -144,10 +179,11 @@
     userStatus: {
       ACTIVE: "정상",
       SUSPENDED: "이용정지",
-      WITHDRAWN: "탈퇴"
+      WITHDRAWN: "탈퇴",
+      DELETED: "삭제됨"
     },
     role: {
-      ROLE_ADMIN: "관리자",
+      ROLE_ADMIN: "슈퍼 관리자",
       ROLE_OPERATOR: "운영자",
       ROLE_PRODUCT_MANAGER: "상품 관리자",
       ROLE_BUSINESS_MEMBER: "기업 회원",
@@ -171,10 +207,29 @@
   };
 
   const labelValues = {
-    productStatus: ["DRAFT", "ON_SALE", "QUOTE_ONLY", "SOLD_OUT", "HIDDEN", "DISCONTINUED", "DELETED"],
+    productStatus: ["DRAFT", "ON_SALE", "QUOTE_ONLY", "SOLD_OUT", "HIDDEN"],
     quoteStatus: ["SUBMITTED", "REVIEWING", "QUOTED", "NEGOTIATING", "APPROVED", "REJECTED", "EXPIRED"],
     consultationStatus: ["NEW", "ASSIGNED", "IN_PROGRESS", "DONE", "CLOSED"],
     vehicleType: ["ONE_TON", "FIVE_TON", "FIVE_TON_AXIS", "TWENTY_FIVE_TON"]
+  };
+
+  const workflowGroups = {
+    quote: {
+      NEW: ["SUBMITTED"],
+      PROCESSING: ["REVIEWING", "QUOTED", "NEGOTIATING"],
+      DONE: ["APPROVED", "REJECTED", "EXPIRED"]
+    },
+    consultation: {
+      NEW: ["NEW"],
+      PROCESSING: ["ASSIGNED", "IN_PROGRESS"],
+      DONE: ["DONE", "CLOSED"]
+    }
+  };
+
+  const workflowLabels = {
+    NEW: "신규",
+    PROCESSING: "처리 중",
+    DONE: "처리 완료"
   };
 
   function label(kind, value) {
@@ -207,6 +262,15 @@
       .join(" / ");
   }
 
+  function workflowBucket(kind, value) {
+    const groups = workflowGroups[kind] || {};
+    return Object.keys(groups).find((key) => groups[key].includes(value)) || "";
+  }
+
+  function workflowLabel(kind, value) {
+    return workflowLabels[workflowBucket(kind, value)] || label(kind === "quote" ? "quoteStatus" : "consultationStatus", value);
+  }
+
   function escapeHtml(value) {
     return String(value === null || value === undefined ? "" : value)
       .replace(/&/g, "&amp;")
@@ -218,6 +282,39 @@
 
   function html(strings, ...values) {
     return strings.reduce((acc, part, index) => acc + part + (index < values.length ? escapeHtml(values[index]) : ""), "");
+  }
+
+  function notify(message, options) {
+    const body = String(message || "").trim();
+    if (!body) return false;
+    window.alert(body);
+    return true;
+  }
+
+  function initBrandChrome() {
+    document.title = brandTitle;
+    let icon = document.querySelector('link[rel="icon"]');
+    if (!icon) {
+      icon = document.createElement("link");
+      icon.rel = "icon";
+      document.head.appendChild(icon);
+    }
+    icon.href = brandIcon;
+  }
+
+  function initAgreementToggles() {
+    if (document.documentElement.dataset.agreementToggleBound) return;
+    document.documentElement.dataset.agreementToggleBound = "true";
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-agreement-toggle]");
+      if (!button) return;
+      const detail = document.getElementById(button.dataset.agreementToggle);
+      if (!detail) return;
+      const open = detail.hidden;
+      detail.hidden = !open;
+      button.setAttribute("aria-expanded", String(open));
+      button.textContent = open ? "접기" : "자세히 보기";
+    });
   }
 
   function setState(target, message, kind) {
@@ -433,7 +530,19 @@
             <label class="field">상담 내용
               <textarea name="message" placeholder="필요한 자재, 수량, 현장 위치를 남겨주세요."></textarea>
             </label>
-            <label class="row"><input type="checkbox" name="privacyAgreed" required> 개인정보 수집에 동의합니다.</label>
+            <section class="agreement-panel compact" aria-label="개인정보 수집 동의">
+              <div class="agreement-list">
+                <article class="agreement-item">
+                  <div class="agreement-item-head">
+                    <label class="agreement-check"><input type="checkbox" name="privacyAgreed" required> <span>개인정보 수집·이용 동의 <small>필수</small></span></label>
+                    <button class="agreement-toggle" type="button" aria-expanded="false" aria-controls="consultation-modal-privacy-detail" data-agreement-toggle="consultation-modal-privacy-detail">자세히 보기</button>
+                  </div>
+                  <div class="agreement-detail" id="consultation-modal-privacy-detail" hidden>
+                    <p>상담 접수와 연락을 위해 담당자명, 연락처, 상담 내용을 수집하며 상담 처리 및 이력 확인 목적으로 보관합니다.</p>
+                  </div>
+                </article>
+              </div>
+            </section>
             <div class="modal-actions">
               <button class="button" type="button" id="consultation-close">닫기</button>
               <button class="button primary" type="submit">요청 접수</button>
@@ -479,8 +588,10 @@
             privacyAgreed: form.privacyAgreed.checked
           }
         });
-        setState("#consultation-modal-state", "상담 요청이 접수되었습니다.", "notice");
+        notify("상담 요청이 접수되었습니다.");
+        setState("#consultation-modal-state", "", "");
         form.reset();
+        window.setTimeout(closeModal, 700);
       } catch (error) {
         setState("#consultation-modal-state", error.message, "error");
       }
@@ -491,7 +602,6 @@
     { href: "admin.html", label: "대시보드", roles: ["ROLE_ADMIN"] },
     { href: "admin-categories.html", label: "카테고리", roles: ["ROLE_ADMIN", "ROLE_PRODUCT_MANAGER"] },
     { href: "admin-products.html", label: "상품", roles: ["ROLE_ADMIN", "ROLE_PRODUCT_MANAGER"] },
-    { href: "admin-freight.html", label: "운반비", roles: ["ROLE_ADMIN", "ROLE_PRODUCT_MANAGER"] },
     { href: "admin-quotes.html", label: "견적", roles: ["ROLE_ADMIN", "ROLE_OPERATOR"] },
     { href: "admin-consultations.html", label: "상담", roles: ["ROLE_ADMIN", "ROLE_OPERATOR"] },
     { href: "admin-users.html", label: "회원", roles: ["ROLE_ADMIN"] },
@@ -521,6 +631,42 @@
         return `<a href="${item.href}" class="${active ? "is-active" : ""}"${active ? ' aria-current="page"' : ""}>${item.label}</a>`;
       }).join("");
     });
+  }
+
+  async function initAdminBadges() {
+    const user = currentUser();
+    if (!hasAnyRole(user, ["ROLE_ADMIN", "ROLE_OPERATOR"])) return;
+    try {
+      const [quotes, consultations] = await Promise.all([
+        hasAnyRole(user, ["ROLE_ADMIN", "ROLE_OPERATOR"])
+          ? request("/admin/quotes?status=SUBMITTED&page=1&size=1")
+          : Promise.resolve({ total: 0 }),
+        hasAnyRole(user, ["ROLE_ADMIN", "ROLE_OPERATOR"])
+          ? request("/admin/consultations?status=NEW&page=1&size=1")
+          : Promise.resolve({ total: 0 })
+      ]);
+      const counts = {
+        "admin-quotes.html": Number(quotes?.total || 0),
+        "admin-consultations.html": Number(consultations?.total || 0)
+      };
+      Object.entries(counts).forEach(([href, count]) => {
+        document.querySelectorAll(`.admin-sidebar a[href="${href}"]`).forEach((link) => {
+          link.querySelector(".admin-nav-count")?.remove();
+          if (count > 0) {
+            link.insertAdjacentHTML("beforeend", `<span class="admin-nav-count">${count.toLocaleString("ko-KR")}</span>`);
+          }
+        });
+      });
+      const totalNew = Object.values(counts).reduce((sum, count) => sum + count, 0);
+      document.querySelectorAll('.site-header .brand[href="admin.html"]').forEach((link) => {
+        link.classList.remove("has-admin-alert");
+      });
+      document.querySelectorAll('.site-header .nav a[href="admin.html"]').forEach((link) => {
+        link.classList.toggle("has-admin-alert", totalNew > 0);
+      });
+    } catch (error) {
+      // 관리자 배지는 보조 정보라 실패해도 페이지 사용을 막지 않습니다.
+    }
   }
 
   function initAdminAccessGuard() {
@@ -619,6 +765,45 @@
     });
   }
 
+  function scrollToElement(target, options) {
+    const config = options || {};
+    const el = typeof target === "string" ? document.querySelector(target) : target;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      const headerHeight = document.querySelector(".site-header")?.getBoundingClientRect().height || 0;
+      const offset = Number(config.offset ?? 16);
+      const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - offset;
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior: config.behavior || "smooth"
+      });
+    });
+  }
+
+  function paginationControls(data, options) {
+    const config = options || {};
+    const totalPages = Math.max(1, Math.ceil(Number(data?.total || 0) / Number(data?.size || config.size || 1)));
+    const currentPage = Math.min(totalPages, Math.max(1, Number(data?.page || 1)));
+    const visiblePageCount = Number(config.visiblePageCount || 10);
+    let start = Math.max(1, currentPage - Math.floor((visiblePageCount - 1) / 2));
+    let end = Math.min(totalPages, start + visiblePageCount - 1);
+    start = Math.max(1, end - visiblePageCount + 1);
+    const attrs = typeof config.pageAttributes === "function"
+      ? config.pageAttributes
+      : (page) => `data-page="${page}"`;
+    const buttons = [];
+    for (let page = start; page <= end; page++) {
+      buttons.push(`<button class="button page-button ${page === currentPage ? "is-active" : ""}" type="button" ${attrs(page)}${page === currentPage ? ' aria-current="page"' : ""}>${page}</button>`);
+    }
+    return `
+      <div class="pagination-buttons">
+        <button class="button" type="button" ${attrs(Math.max(1, currentPage - 1))}${currentPage <= 1 ? " disabled" : ""}>이전</button>
+        ${buttons.join("")}
+        <button class="button" type="button" ${attrs(Math.min(totalPages, currentPage + 1))}${currentPage >= totalPages ? " disabled" : ""}>다음</button>
+      </div>
+    `;
+  }
+
   window.app = {
     request,
     token,
@@ -633,8 +818,13 @@
     roleLabel,
     rolesLabel,
     pricePolicyLabel,
+    workflowBucket,
+    workflowLabel,
     escapeHtml,
     html,
+    notify,
+    paginationControls,
+    scrollToElement,
     setState,
     cartItems,
     saveCart,
@@ -646,6 +836,8 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
+    initBrandChrome();
+    initAgreementToggles();
     initBrandLogo();
     const canUseCurrentPage = initAdminAccessGuard();
     initAuthNavigation();
@@ -653,5 +845,6 @@
     initConsultationLauncher();
     if (!canUseCurrentPage) return;
     initAdminSidebar();
+    initAdminBadges();
   });
 })();

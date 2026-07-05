@@ -6,19 +6,28 @@
   <link rel="stylesheet" href="assets/css/reset.css"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/admin.css">
 </head>
 <body>
-  <header class="site-header"><div class="topbar"><a class="brand" href="admin.html">관리자 콘솔<small>견적</small></a></div></header>
+  <header class="site-header"><div class="topbar"><a class="brand" href="index.html">관리자 콘솔<small>견적</small></a></div></header>
   <div class="admin-shell">
     <aside class="admin-sidebar"><nav><a href="admin.html">대시보드</a><a href="admin-products.html">상품</a><a href="admin-consultations.html">상담</a><a href="admin-users.html">회원</a></nav></aside>
     <main class="admin-main" id="admin-quotes">
       <h1>견적 관리</h1>
       <form id="quote-filter-form" class="row" style="margin:16px 0">
-        <label class="field" style="min-width:220px">견적 상태
-          <select id="quote-status-filter" class="input"><option value="">전체</option><option value="SUBMITTED">접수완료</option><option value="REVIEWING">검토중</option><option value="QUOTED">견적완료</option><option value="NEGOTIATING">협의중</option><option value="APPROVED">승인</option><option value="REJECTED">반려</option><option value="EXPIRED">만료</option></select>
+        <label class="field" style="min-width:220px">견적 분류
+          <select id="quote-status-filter" class="input"><option value="">전체</option><option value="NEW">신규</option><option value="PROCESSING">처리 중</option><option value="DONE">처리 완료</option></select>
         </label>
         <button class="button">조회</button>
       </form>
       <div id="admin-quote-state"></div>
-      <table class="table"><thead><tr><th>번호</th><th>회사</th><th>담당자</th><th>상태</th><th></th></tr></thead><tbody></tbody></table>
+      <section class="admin-list-section">
+        <h2>진행 중인 견적</h2>
+        <table class="table"><thead><tr><th>번호</th><th>회사</th><th>담당자</th><th>분류</th><th></th></tr></thead><tbody id="quote-active-body"></tbody></table>
+        <div class="pagination compact" id="quote-active-pagination"></div>
+      </section>
+      <section class="admin-list-section">
+        <h2>처리 완료 견적</h2>
+        <table class="table"><thead><tr><th>번호</th><th>회사</th><th>담당자</th><th>분류</th><th></th></tr></thead><tbody id="quote-done-body"></tbody></table>
+        <div class="pagination compact" id="quote-done-pagination"></div>
+      </section>
     </main>
   </div>
   <script src="assets/js/config.js"></script><script src="assets/js/api.js"></script><script src="assets/js/admin-quotes.js"></script>

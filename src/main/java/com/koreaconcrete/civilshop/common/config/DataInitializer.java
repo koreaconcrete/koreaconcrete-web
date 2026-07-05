@@ -196,6 +196,7 @@ public class DataInitializer implements CommandLineRunner {
 		product.setOriginCountry("국산");
 		product.setManufacturer("한국콘크리트산업");
 		product.setCustomMade(false);
+		product.setSortOrder(seed.sortOrder());
 		product.setStatus(ProductStatus.ON_SALE);
 		product = productRepository.save(product);
 

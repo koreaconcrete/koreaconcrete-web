@@ -9,9 +9,9 @@
   <link rel="stylesheet" href="assets/css/admin.css">
 </head>
 <body>
-  <header class="site-header"><div class="topbar"><a class="brand" href="admin.html">관리자 콘솔<small>관리자 계정</small></a><nav class="nav"></nav></div></header>
+  <header class="site-header"><div class="topbar"><a class="brand" href="index.html">관리자 콘솔<small>관리자 계정</small></a><nav class="nav"></nav></div></header>
   <div class="admin-shell">
-    <aside class="admin-sidebar"><nav><a href="admin.html">대시보드</a><a href="admin-categories.html">카테고리</a><a href="admin-products.html">상품</a><a href="admin-freight.html">운반비</a><a href="admin-quotes.html">견적</a><a href="admin-consultations.html">상담</a><a href="admin-users.html">회원</a><a href="admin-admins.html">관리자 계정</a></nav></aside>
+    <aside class="admin-sidebar"><nav><a href="admin.html">대시보드</a><a href="admin-categories.html">카테고리</a><a href="admin-products.html">상품</a><a href="admin-quotes.html">견적</a><a href="admin-consultations.html">상담</a><a href="admin-users.html">회원</a><a href="admin-admins.html">관리자 계정</a></nav></aside>
     <main class="admin-main" id="admin-admins">
       <div class="admin-page-head">
         <h1>관리자 계정 관리</h1>
@@ -28,8 +28,8 @@
           <label class="field">권한
             <select class="input" name="role" required>
               <option value="ROLE_OPERATOR">운영자 - 견적/상담 관리</option>
-              <option value="ROLE_PRODUCT_MANAGER">상품 관리자 - 상품/카테고리/운반비 관리</option>
-              <option value="ROLE_ADMIN">관리자 - 전체 권한</option>
+              <option value="ROLE_PRODUCT_MANAGER">상품 관리자 - 상품/카테고리 관리</option>
+              <option value="ROLE_ADMIN">슈퍼 관리자 - 전체 권한</option>
             </select>
           </label>
         </div>

@@ -12,6 +12,7 @@ import com.koreaconcrete.civilshop.auth.dto.AuthDtos.AuthResponse;
 import com.koreaconcrete.civilshop.auth.dto.AuthDtos.AuthUser;
 import com.koreaconcrete.civilshop.auth.dto.AuthDtos.LoginRequest;
 import com.koreaconcrete.civilshop.auth.dto.AuthDtos.SignupRequest;
+import com.koreaconcrete.civilshop.common.domain.UserStatus;
 import com.koreaconcrete.civilshop.common.exception.BusinessException;
 import com.koreaconcrete.civilshop.common.security.JwtTokenProvider;
 import com.koreaconcrete.civilshop.user.entity.Role;
@@ -71,6 +72,7 @@ public class AuthService {
 		if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
 			throw BusinessException.unauthorized("아이디 또는 비밀번호를 확인해주세요.");
 		}
+		ensureActive(user);
 		user.setLastLoginAt(LocalDateTime.now());
 		return issue(user);
 	}
@@ -83,8 +85,15 @@ public class AuthService {
 	}
 
 	public AuthResponse issue(User user) {
+		ensureActive(user);
 		List<String> roles = userRoleRepository.findRoleNamesByUserId(user.getId());
 		String token = jwtTokenProvider.createToken(user.getId(), user.getEmail(), roles);
 		return AuthResponse.bearer(token, new AuthUser(user.getId(), user.getEmail(), user.getName(), roles));
+	}
+
+	private void ensureActive(User user) {
+		if (user.getStatus() != UserStatus.ACTIVE) {
+			throw BusinessException.unauthorized("아이디 또는 비밀번호를 확인해주세요.");
+		}
 	}
 }

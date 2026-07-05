@@ -150,25 +150,7 @@
                 </div>
               </div>
             </section>
-            <div class="grid cols-2 detail-service-forms">
-              <form id="freight-form" class="card grid">
-                <h2>운반비 예상</h2>
-                <p class="muted">위 규격표에서 선택한 규격과 수량으로 계산합니다.</p>
-                <label class="field">현장주소
-                  <input class="input" name="destinationAddress" placeholder="예: 경기도 화성시" required>
-                </label>
-                <label class="field">희망 차량
-                  <select class="input" name="preferredVehicleType">
-                    <option value="">차량 자동 선택</option>
-                    <option value="ONE_TON">1톤</option>
-                    <option value="FIVE_TON">5톤</option>
-                    <option value="FIVE_TON_AXIS">5톤 축차</option>
-                    <option value="TWENTY_FIVE_TON">25톤</option>
-                  </select>
-                </label>
-                <button class="button" type="submit">계산</button>
-                <div id="freight-result"></div>
-              </form>
+            <div class="grid detail-service-forms">
               <form id="consultation-inline-form" class="card grid">
                 <h2>상담 요청</h2>
                 <div class="grid cols-2">
@@ -182,7 +164,19 @@
                 <label class="field">상담 내용
                   <textarea name="message" placeholder="상담 내용을 입력해주세요."></textarea>
                 </label>
-                <label class="row"><input type="checkbox" name="privacyAgreed" required> 개인정보 수집에 동의합니다.</label>
+                <section class="agreement-panel compact" aria-label="개인정보 수집 동의">
+                  <div class="agreement-list">
+                    <article class="agreement-item">
+                      <div class="agreement-item-head">
+                        <label class="agreement-check"><input type="checkbox" name="privacyAgreed" required> <span>개인정보 수집·이용 동의 <small>필수</small></span></label>
+                        <button class="agreement-toggle" type="button" aria-expanded="false" aria-controls="product-consultation-privacy-detail" data-agreement-toggle="product-consultation-privacy-detail">자세히 보기</button>
+                      </div>
+                      <div class="agreement-detail" id="product-consultation-privacy-detail" hidden>
+                        <p>상품 상담 접수와 연락을 위해 담당자명, 연락처, 상담 내용을 수집하며 상담 처리 및 이력 확인 목적으로 보관합니다.</p>
+                      </div>
+                    </article>
+                  </div>
+                </section>
                 <div class="row">
                   <button class="button" type="button" data-consult-type="SMS">문자상담 요청</button>
                   <button class="button" type="button" data-consult-type="PHONE">전화상담 요청</button>
@@ -352,11 +346,14 @@
     document.querySelector("#variant-pagination")?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-variant-page]");
       if (!button) return;
+      event.preventDefault();
       const nextPage = Number(button.dataset.variantPage);
       if (!nextPage || nextPage === variantPage) return;
       variantPage = nextPage;
       renderVariantTable();
+      button.blur();
       document.querySelector(".variant-table-wrap")?.scrollTo({ top: 0, behavior: "smooth" });
+      app.scrollToElement(".variant-browser");
     });
     document.querySelector("#variant-table-body")?.addEventListener("change", (event) => {
       const row = event.target.closest("[data-variant-id]");
@@ -401,29 +398,6 @@
         location.href = "quote-new.html";
       } catch (error) {
         app.setState("#variant-spec", error.message, "error");
-      }
-    });
-    document.querySelector("#freight-form").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const variant = selectedVariant();
-      if (!variant) {
-        app.setState("#freight-result", "선택 가능한 규격이 없습니다.", "error");
-        return;
-      }
-      const data = Object.fromEntries(new FormData(event.currentTarget).entries());
-      const body = {
-        destinationAddress: data.destinationAddress,
-        preferredVehicleType: data.preferredVehicleType || null,
-        items: [{ productId: product.id, variantId: variant.id, quantity: selectedQuantity() }]
-      };
-      try {
-        const result = await app.request("/freight/estimate", { method: "POST", body });
-        document.querySelector("#freight-result").innerHTML = app.html`
-          <p class="price">${app.money(result.totalFreightAmount)}</p>
-          <p class="muted">${(result.notes || []).join(" ")}</p>
-        `;
-      } catch (error) {
-        app.setState("#freight-result", error.message, "error");
       }
     });
     document.querySelectorAll("[data-consult-type]").forEach((button) => {
@@ -474,7 +448,7 @@
   function renderVariantPagination(total, totalPages) {
     const el = document.querySelector("#variant-pagination");
     if (!el) return;
-    if (!total || totalPages <= 1) {
+    if (!total) {
       el.innerHTML = "";
       return;
     }
@@ -563,7 +537,8 @@
           privacyAgreed: form.privacyAgreed.checked
         }
       });
-      app.setState("#consultation-result", "상담요청이 접수되었습니다.", "notice");
+      app.notify("상담요청이 접수되었습니다.");
+      app.setState("#consultation-result", "", "");
       form.reset();
     } catch (error) {
       app.setState("#consultation-result", error.message, "error");

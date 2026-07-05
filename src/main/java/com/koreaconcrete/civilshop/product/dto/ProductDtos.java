@@ -34,6 +34,7 @@ public final class ProductDtos {
 			String representativeImageUrl,
 			String unit,
 			ProductStatus status,
+			Integer sortOrder,
 			Long representativeVariantId,
 			String representativeVariantName,
 			List<String> variantNames,
@@ -82,6 +83,7 @@ public final class ProductDtos {
 			Integer leadTimeDaysMin,
 			Integer leadTimeDaysMax,
 			ProductStatus status,
+			Integer sortOrder,
 			CategoryBrief category,
 			List<VariantResponse> variants,
 			List<SpecResponse> specs,
@@ -106,6 +108,7 @@ public final class ProductDtos {
 			Integer leadTimeDaysMin,
 			Integer leadTimeDaysMax,
 			ProductStatus status,
+			Integer sortOrder,
 			List<SpecRequest> specs,
 			List<MediaRequest> media,
 			List<RelationRequest> relations
@@ -113,6 +116,12 @@ public final class ProductDtos {
 	}
 
 	public record ProductStatusRequest(@NotNull ProductStatus status) {
+	}
+
+	public record ProductSortOrderRequest(@NotNull Integer sortOrder) {
+	}
+
+	public record ProductMoveRequest(@NotBlank String direction) {
 	}
 
 	public record VariantRequest(

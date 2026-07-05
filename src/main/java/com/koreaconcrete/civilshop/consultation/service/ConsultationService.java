@@ -1,5 +1,7 @@
 package com.koreaconcrete.civilshop.consultation.service;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -69,11 +71,40 @@ public class ConsultationService {
 	}
 
 	public PageResponse<ConsultationResponse> adminList(ConsultationStatus status, int page, int size) {
-		PageRequest pageRequest = PageRequest.of(Math.max(page - 1, 0), size);
-		Page<Consultation> consultations = status == null
-				? consultationRepository.findAllByOrderByIdDesc(pageRequest)
-				: consultationRepository.findByStatusOrderByIdDesc(status, pageRequest);
+		return adminList(status, null, page, size);
+	}
+
+	public PageResponse<ConsultationResponse> me(UserPrincipal principal, int page, int size) {
+		Page<Consultation> consultations = consultationRepository.findByUserIdOrderByIdDesc(
+				principal.id(),
+				PageRequest.of(Math.max(page - 1, 0), size)
+		);
 		return PageResponse.of(consultations, consultations.stream().map(this::toResponse).toList());
+	}
+
+	public PageResponse<ConsultationResponse> adminList(ConsultationStatus status, String bucket, int page, int size) {
+		PageRequest pageRequest = PageRequest.of(Math.max(page - 1, 0), size);
+		Page<Consultation> consultations;
+		if (status != null) {
+			consultations = consultationRepository.findByStatusOrderByIdDesc(status, pageRequest);
+		} else {
+			List<ConsultationStatus> statuses = statusesForBucket(bucket);
+			consultations = statuses.isEmpty()
+					? consultationRepository.findAllByOrderByIdDesc(pageRequest)
+					: consultationRepository.findByStatusInOrderByIdDesc(statuses, pageRequest);
+		}
+		return PageResponse.of(consultations, consultations.stream().map(this::toResponse).toList());
+	}
+
+	private List<ConsultationStatus> statusesForBucket(String bucket) {
+		String normalized = bucket == null ? "" : bucket.trim().toUpperCase();
+		return switch (normalized) {
+			case "NEW" -> List.of(ConsultationStatus.NEW);
+			case "ACTIVE" -> List.of(ConsultationStatus.NEW, ConsultationStatus.ASSIGNED, ConsultationStatus.IN_PROGRESS);
+			case "PROCESSING" -> List.of(ConsultationStatus.ASSIGNED, ConsultationStatus.IN_PROGRESS);
+			case "DONE" -> List.of(ConsultationStatus.DONE, ConsultationStatus.CLOSED);
+			default -> List.of();
+		};
 	}
 
 	@Transactional

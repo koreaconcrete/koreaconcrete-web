@@ -41,15 +41,19 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.POST, "/api/v1/auth/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/auth/login-id-available").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/categories/**", "/api/v1/products/**", "/api/v1/search/**").permitAll()
-						.requestMatchers(HttpMethod.POST, "/api/v1/freight/estimate", "/api/v1/consultations/**").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/consultations/**").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/v1/quotes").authenticated()
-						.requestMatchers("/api/v1/users/me/**", "/api/v1/users/me", "/api/v1/quotes/me", "/api/v1/cart/**").authenticated()
+						.requestMatchers("/api/v1/users/me/**", "/api/v1/users/me", "/api/v1/quotes/me",
+								"/api/v1/consultations/me", "/api/v1/cart/**")
+						.authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/v1/quotes/*").authenticated()
 						.requestMatchers(HttpMethod.POST, "/api/v1/quotes/*/approve", "/api/v1/quotes/*/cancel").authenticated()
+						.requestMatchers("/api/v1/freight/**", "/api/v1/products/*/loading-rules",
+								"/api/v1/admin/loading-rules/**", "/api/v1/admin/freight-rate-rules/**")
+						.denyAll()
 						.requestMatchers("/api/v1/admin/categories/**", "/api/v1/admin/products/**",
 								"/api/v1/admin/product-variants/**", "/api/v1/admin/price-books/**",
-								"/api/v1/admin/product-prices/**", "/api/v1/admin/loading-rules/**",
-								"/api/v1/admin/freight-rate-rules/**")
+								"/api/v1/admin/product-prices/**")
 						.hasAnyAuthority("ROLE_ADMIN", "ROLE_PRODUCT_MANAGER")
 						.requestMatchers("/api/v1/admin/quotes/**", "/api/v1/admin/consultations/**")
 						.hasAnyAuthority("ROLE_ADMIN", "ROLE_OPERATOR")

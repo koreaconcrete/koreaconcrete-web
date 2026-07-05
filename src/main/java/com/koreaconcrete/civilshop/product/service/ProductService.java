@@ -1,6 +1,7 @@
 package com.koreaconcrete.civilshop.product.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -33,7 +34,9 @@ import com.koreaconcrete.civilshop.product.dto.ProductDtos.MediaResponse;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.PriceBrief;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductDetail;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductListItem;
+import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductMoveRequest;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductRequest;
+import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductSortOrderRequest;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductStatusRequest;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.RelationRequest;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.RelationResponse;
@@ -56,6 +59,9 @@ import com.koreaconcrete.civilshop.search.service.SearchService;
 @Service
 @Transactional(readOnly = true)
 public class ProductService {
+	private static final List<ProductStatus> PUBLIC_PRODUCT_STATUSES = List.of(ProductStatus.ON_SALE, ProductStatus.QUOTE_ONLY);
+	private static final Set<ProductStatus> PUBLIC_VARIANT_STATUSES = Set.of(ProductStatus.ON_SALE, ProductStatus.QUOTE_ONLY, ProductStatus.SOLD_OUT);
+
 	private final ProductRepository productRepository;
 	private final ProductVariantRepository productVariantRepository;
 	private final ProductSpecRepository productSpecRepository;
@@ -93,24 +99,23 @@ public class ProductService {
 
 	@Transactional
 	public PageResponse<ProductListItem> list(String keyword, Long categoryId, String sort, int page, int size, String sessionId) {
-		ProductStatus status = ProductStatus.ON_SALE;
-		Sort sortSpec = "name".equals(sort)
-				? Sort.by(Sort.Direction.ASC, "name")
-				: Sort.by(Sort.Direction.DESC, "id");
-		PageRequest pageRequest = PageRequest.of(
-				Math.max(page - 1, 0),
-				size,
-				sortSpec
-		);
+		PageRequest pageRequest = "name".equals(sort)
+				? PageRequest.of(Math.max(page - 1, 0), size, Sort.by(Sort.Direction.ASC, "name").and(Sort.by(Sort.Direction.DESC, "id")))
+				: PageRequest.of(Math.max(page - 1, 0), size);
 		String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim() : null;
-		Page<Product> products = productRepository.search(
-				keywordPattern(normalizedKeyword),
-				categoryId,
-				status,
-				false,
-				ProductStatus.DELETED,
-				pageRequest
-		);
+		Page<Product> products = "name".equals(sort)
+				? productRepository.searchByStatuses(
+						keywordPattern(normalizedKeyword),
+						categoryId,
+						PUBLIC_PRODUCT_STATUSES,
+						pageRequest
+				)
+				: productRepository.searchByDisplayOrderAndStatuses(
+						keywordPattern(normalizedKeyword),
+						categoryId,
+						PUBLIC_PRODUCT_STATUSES,
+						pageRequest
+				);
 		if (StringUtils.hasText(normalizedKeyword)) {
 			searchService.log(null, sessionId, normalizedKeyword, (int) products.getTotalElements());
 		}
@@ -119,13 +124,17 @@ public class ProductService {
 	}
 
 	public PageResponse<ProductListItem> adminList(String keyword, ProductStatus status, boolean includeDeleted, int page, int size) {
-		Page<Product> products = productRepository.search(
+		return adminList(keyword, null, status, includeDeleted, page, size);
+	}
+
+	public PageResponse<ProductListItem> adminList(String keyword, Long categoryId, ProductStatus status, boolean includeDeleted, int page, int size) {
+		Page<Product> products = productRepository.searchByDisplayOrder(
 				keywordPattern(StringUtils.hasText(keyword) ? keyword.trim() : null),
-				null,
+				categoryId,
 				status,
 				includeDeleted,
 				ProductStatus.DELETED,
-				PageRequest.of(Math.max(page - 1, 0), size, Sort.by(Sort.Direction.DESC, "id"))
+				PageRequest.of(Math.max(page - 1, 0), size)
 		);
 		return PageResponse.of(products, products.stream().map(this::toListItem).toList());
 	}
@@ -133,14 +142,14 @@ public class ProductService {
 	public List<ProductListItem> popularProducts(int size) {
 		int limit = Math.max(1, Math.min(size, 12));
 		Map<Long, Product> products = new LinkedHashMap<>();
-		productRepository.popularBySearchLogs(
+		productRepository.popularBySearchLogsAndStatuses(
 				LocalDateTime.now().minusDays(7),
-				ProductStatus.ON_SALE,
+				PUBLIC_PRODUCT_STATUSES,
 				PageRequest.of(0, limit)
-		).forEach(product -> products.put(product.getId(), product));
+		).forEach(product -> products.putIfAbsent(product.getId(), product));
 
 		if (products.size() < limit) {
-			productRepository.findByStatusOrderByIdDesc(ProductStatus.ON_SALE, PageRequest.of(0, limit))
+			productRepository.findByStatusInOrderByIdDesc(PUBLIC_PRODUCT_STATUSES, PageRequest.of(0, limit))
 					.forEach(product -> products.putIfAbsent(product.getId(), product));
 		}
 
@@ -151,11 +160,26 @@ public class ProductService {
 	}
 
 	public ProductDetail detail(Long id) {
-		return toDetail(getProduct(id));
+		return toDetail(getProduct(id), true);
+	}
+
+	public ProductDetail publicDetail(Long id) {
+		Product product = getProduct(id);
+		ensurePublicProduct(product);
+		return toDetail(product, false);
 	}
 
 	public List<VariantResponse> variants(Long productId) {
 		return productVariantRepository.findByProductIdOrderByIdAsc(productId).stream()
+				.map(this::toVariant)
+				.toList();
+	}
+
+	public List<VariantResponse> publicVariants(Long productId) {
+		Product product = getProduct(productId);
+		ensurePublicProduct(product);
+		return productVariantRepository.findByProductIdOrderByIdAsc(productId).stream()
+				.filter(this::isPublicVariant)
 				.map(this::toVariant)
 				.toList();
 	}
@@ -166,13 +190,22 @@ public class ProductService {
 				.toList();
 	}
 
+	public List<RelationResponse> publicRelations(Long productId) {
+		Product product = getProduct(productId);
+		ensurePublicProduct(product);
+		return productRelationRepository.findBySourceProductIdOrderBySortOrderAscIdAsc(productId).stream()
+				.filter(relation -> PUBLIC_PRODUCT_STATUSES.contains(relation.getTargetProduct().getStatus()))
+				.map(this::toRelation)
+				.toList();
+	}
+
 	@Transactional
 	public ProductDetail create(ProductRequest request) {
 		Product product = new Product();
 		applyProduct(product, request);
 		Product saved = productRepository.save(product);
 		replaceExtras(saved, request);
-		return toDetail(saved);
+		return toDetail(saved, true);
 	}
 
 	@Transactional
@@ -180,7 +213,7 @@ public class ProductService {
 		Product product = getProduct(id);
 		applyProduct(product, request);
 		replaceExtras(product, request);
-		return toDetail(product);
+		return toDetail(product, true);
 	}
 
 	@Transactional
@@ -196,7 +229,46 @@ public class ProductService {
 	public ProductDetail updateStatus(Long id, ProductStatusRequest request) {
 		Product product = getProduct(id);
 		applyStatus(product, request.status());
-		return toDetail(product);
+		return toDetail(product, true);
+	}
+
+	@Transactional
+	public ProductDetail updateSortOrder(Long id, ProductSortOrderRequest request) {
+		Product product = getProduct(id);
+		product.setSortOrder(Math.max(0, request.sortOrder()));
+		return toDetail(product, true);
+	}
+
+	@Transactional
+	public ProductDetail move(Long id, ProductMoveRequest request) {
+		Product product = getProduct(id);
+		if (product.getStatus() == ProductStatus.DELETED) {
+			throw BusinessException.badRequest("삭제된 상품은 순서를 변경할 수 없습니다.");
+		}
+		String direction = request.direction() == null ? "" : request.direction().trim().toLowerCase(Locale.ROOT);
+		List<Product> siblings = new ArrayList<>(productRepository.findMovableSiblings(product.getCategory().getId(), ProductStatus.DELETED));
+		int currentIndex = findProductIndex(siblings, product.getId());
+		if (currentIndex < 0) {
+			throw BusinessException.badRequest("상품 순서를 변경할 수 없습니다.");
+		}
+		int targetIndex;
+		if ("up".equals(direction)) {
+			targetIndex = currentIndex - 1;
+		} else if ("down".equals(direction)) {
+			targetIndex = currentIndex + 1;
+		} else {
+			throw BusinessException.badRequest("지원하지 않는 이동 방향입니다.");
+		}
+		if (targetIndex < 0 || targetIndex >= siblings.size()) {
+			return toDetail(product, true);
+		}
+		Product target = siblings.get(targetIndex);
+		siblings.set(targetIndex, product);
+		siblings.set(currentIndex, target);
+		for (int index = 0; index < siblings.size(); index++) {
+			siblings.get(index).setSortOrder((index + 1) * 10);
+		}
+		return toDetail(product, true);
 	}
 
 	@Transactional
@@ -257,6 +329,15 @@ public class ProductService {
 		}
 	}
 
+	private int findProductIndex(List<Product> products, Long productId) {
+		for (int index = 0; index < products.size(); index++) {
+			if (products.get(index).getId().equals(productId)) {
+				return index;
+			}
+		}
+		return -1;
+	}
+
 	private void applyProduct(Product product, ProductRequest request) {
 		Category category = categoryService.getCategory(request.categoryId());
 		if (category.getParent() == null || category.getDepth() != 2) {
@@ -274,6 +355,11 @@ public class ProductService {
 		product.setCustomMade(request.customMade() != null && request.customMade());
 		product.setLeadTimeDaysMin(request.leadTimeDaysMin());
 		product.setLeadTimeDaysMax(request.leadTimeDaysMax());
+		if (request.sortOrder() != null) {
+			product.setSortOrder(Math.max(0, request.sortOrder()));
+		} else if (product.getSortOrder() == null) {
+			product.setSortOrder(0);
+		}
 		applyStatus(product, request.status() == null ? ProductStatus.DRAFT : request.status());
 	}
 
@@ -389,9 +475,7 @@ public class ProductService {
 
 	private ProductListItem toListItem(Product product) {
 		List<ProductVariant> variants = productVariantRepository.findByProductIdOrderByIdAsc(product.getId()).stream()
-				.filter(variant -> variant.getStatus() != ProductStatus.HIDDEN
-						&& variant.getStatus() != ProductStatus.DISCONTINUED
-						&& variant.getStatus() != ProductStatus.DELETED)
+				.filter(this::isPublicVariant)
 				.toList();
 		ProductVariant representative = variants.stream()
 				.findFirst()
@@ -416,6 +500,7 @@ public class ProductService {
 				representativeImageUrl,
 				product.getUnit(),
 				product.getStatus(),
+				product.getSortOrder(),
 				representative == null ? null : representative.getId(),
 				representative == null ? null : representative.getVariantName(),
 				variantNames,
@@ -425,7 +510,7 @@ public class ProductService {
 		);
 	}
 
-	private ProductDetail toDetail(Product product) {
+	private ProductDetail toDetail(Product product, boolean includePrivateVariants) {
 		return new ProductDetail(
 				product.getId(),
 				product.getSku(),
@@ -440,14 +525,46 @@ public class ProductService {
 				product.getLeadTimeDaysMin(),
 				product.getLeadTimeDaysMax(),
 				product.getStatus(),
+				product.getSortOrder(),
 				new CategoryBrief(product.getCategory().getId(), product.getCategory().getName()),
-				variants(product.getId()),
-				productSpecRepository.findByProductIdOrderBySortOrderAscIdAsc(product.getId()).stream().map(this::toSpec).toList(),
-				productMediaRepository.findByProductIdOrderBySortOrderAscIdAsc(product.getId()).stream().map(this::toMedia).toList(),
-				relations(product.getId()),
+				variantResponses(product.getId(), includePrivateVariants),
+				specResponses(product.getId(), includePrivateVariants),
+				mediaResponses(product.getId(), includePrivateVariants),
+				includePrivateVariants ? relations(product.getId()) : publicRelations(product.getId()),
 				product.getCreatedAt(),
 				product.getUpdatedAt()
 		);
+	}
+
+	private List<VariantResponse> variantResponses(Long productId, boolean includePrivateVariants) {
+		return productVariantRepository.findByProductIdOrderByIdAsc(productId).stream()
+				.filter(variant -> includePrivateVariants || isPublicVariant(variant))
+				.map(this::toVariant)
+				.toList();
+	}
+
+	private List<SpecResponse> specResponses(Long productId, boolean includePrivateVariants) {
+		return productSpecRepository.findByProductIdOrderBySortOrderAscIdAsc(productId).stream()
+				.filter(spec -> includePrivateVariants || spec.getVariant() == null || isPublicVariant(spec.getVariant()))
+				.map(this::toSpec)
+				.toList();
+	}
+
+	private List<MediaResponse> mediaResponses(Long productId, boolean includePrivateVariants) {
+		return productMediaRepository.findByProductIdOrderBySortOrderAscIdAsc(productId).stream()
+				.filter(media -> includePrivateVariants || media.getVariant() == null || isPublicVariant(media.getVariant()))
+				.map(this::toMedia)
+				.toList();
+	}
+
+	private void ensurePublicProduct(Product product) {
+		if (!PUBLIC_PRODUCT_STATUSES.contains(product.getStatus())) {
+			throw BusinessException.notFound("상품을 찾을 수 없습니다.");
+		}
+	}
+
+	private boolean isPublicVariant(ProductVariant variant) {
+		return PUBLIC_VARIANT_STATUSES.contains(variant.getStatus());
 	}
 
 	private VariantResponse toVariant(ProductVariant variant) {

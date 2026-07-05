@@ -61,18 +61,18 @@ public class ProductController {
 	@Operation(summary = "상품 상세")
 	@GetMapping("/{id}")
 	public ProductDetail detail(@PathVariable Long id) {
-		return productService.detail(id);
+		return productService.publicDetail(id);
 	}
 
 	@Operation(summary = "상품 규격 목록")
 	@GetMapping("/{id}/variants")
 	public List<VariantResponse> variants(@PathVariable Long id) {
-		return productService.variants(id);
+		return productService.publicVariants(id);
 	}
 
 	@Operation(summary = "상품 연관/대체 목록")
 	@GetMapping("/{id}/relations")
 	public List<RelationResponse> relations(@PathVariable Long id) {
-		return productService.relations(id);
+		return productService.publicRelations(id);
 	}
 }

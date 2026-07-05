@@ -34,10 +34,11 @@ public class AdminConsultationController {
 	@GetMapping
 	public PageResponse<ConsultationResponse> list(
 			@RequestParam(required = false) ConsultationStatus status,
+			@RequestParam(required = false) String bucket,
 			@RequestParam(defaultValue = "1") int page,
 			@RequestParam(defaultValue = "20") int size
 	) {
-		return consultationService.adminList(status, page, size);
+		return consultationService.adminList(status, bucket, page, size);
 	}
 
 	@Operation(summary = "관리자 상담 상세")

@@ -6,19 +6,28 @@
   <link rel="stylesheet" href="assets/css/reset.css"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/admin.css">
 </head>
 <body>
-  <header class="site-header"><div class="topbar"><a class="brand" href="admin.html">관리자 콘솔<small>상담</small></a></div></header>
+  <header class="site-header"><div class="topbar"><a class="brand" href="index.html">관리자 콘솔<small>상담</small></a></div></header>
   <div class="admin-shell">
     <aside class="admin-sidebar"><nav><a href="admin.html">대시보드</a><a href="admin-quotes.html">견적</a><a href="admin-products.html">상품</a></nav></aside>
     <main class="admin-main" id="admin-consultations">
       <h1>상담 관리</h1>
       <form id="consultation-filter-form" class="row" style="margin:16px 0">
-        <label class="field" style="min-width:220px">상담 상태
-          <select id="consultation-status-filter" class="input"><option value="">전체</option><option value="NEW">신규</option><option value="ASSIGNED">담당자 배정</option><option value="IN_PROGRESS">진행중</option><option value="DONE">처리완료</option><option value="CLOSED">종료</option></select>
+        <label class="field" style="min-width:220px">상담 분류
+          <select id="consultation-status-filter" class="input"><option value="">전체</option><option value="NEW">신규</option><option value="PROCESSING">처리 중</option><option value="DONE">처리 완료</option></select>
         </label>
         <button class="button">조회</button>
       </form>
       <div id="admin-consultation-state"></div>
-      <table class="table"><thead><tr><th>번호</th><th>유형</th><th>상담 상품</th><th>이름</th><th>연락처</th><th>내용</th><th>상태</th><th></th></tr></thead><tbody></tbody></table>
+      <section class="admin-list-section">
+        <h2>진행 중인 상담</h2>
+        <table class="table"><thead><tr><th>번호</th><th>유형</th><th>상담 상품</th><th>이름</th><th>연락처</th><th>내용</th><th>분류</th></tr></thead><tbody id="consultation-active-body"></tbody></table>
+        <div class="pagination compact" id="consultation-active-pagination"></div>
+      </section>
+      <section class="admin-list-section">
+        <h2>처리 완료 상담</h2>
+        <table class="table"><thead><tr><th>번호</th><th>유형</th><th>상담 상품</th><th>이름</th><th>연락처</th><th>내용</th><th>분류</th></tr></thead><tbody id="consultation-done-body"></tbody></table>
+        <div class="pagination compact" id="consultation-done-pagination"></div>
+      </section>
     </main>
   </div>
   <script src="assets/js/config.js"></script><script src="assets/js/api.js"></script><script src="assets/js/admin-consultations.js"></script>

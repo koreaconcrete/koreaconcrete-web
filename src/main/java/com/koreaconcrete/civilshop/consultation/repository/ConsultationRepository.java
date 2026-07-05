@@ -1,5 +1,7 @@
 package com.koreaconcrete.civilshop.consultation.repository;
 
+import java.util.Collection;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +15,10 @@ public interface ConsultationRepository extends JpaRepository<Consultation, Long
 	Page<Consultation> findAllByOrderByIdDesc(Pageable pageable);
 
 	Page<Consultation> findByStatusOrderByIdDesc(ConsultationStatus status, Pageable pageable);
+
+	Page<Consultation> findByStatusInOrderByIdDesc(Collection<ConsultationStatus> statuses, Pageable pageable);
+
+	Page<Consultation> findByUserIdOrderByIdDesc(Long userId, Pageable pageable);
 
 	boolean existsByProductId(Long productId);
 }

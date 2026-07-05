@@ -214,7 +214,7 @@
       return categoryMenuProductCache.get(categoryId);
     }
     try {
-      const page = await app.request("/products?categoryId=" + encodeURIComponent(categoryId) + "&size=8&sort=name");
+      const page = await app.request("/products?categoryId=" + encodeURIComponent(categoryId) + "&size=8");
       const products = page.items || [];
       categoryMenuProductCache.set(categoryId, products);
       return products;
@@ -342,37 +342,35 @@
   function renderPagination(page) {
     const el = document.querySelector("#product-pagination");
     if (!el) return;
-    if (!page || !page.total) {
+    if (!page) {
       el.innerHTML = "";
       return;
     }
-    const totalPages = Math.max(1, Math.ceil(page.total / page.size));
-    if (totalPages <= 1) {
-      el.innerHTML = "";
-      return;
-    }
+    const current = Number(page.page || 1);
+    const totalPages = Math.max(1, Math.ceil(Number(page.total || 0) / Number(page.size || 1)));
     const visiblePageCount = 10;
-    let start = Math.max(1, page.page - Math.floor((visiblePageCount - 1) / 2));
+    let start = Math.max(1, current - Math.floor((visiblePageCount - 1) / 2));
     let end = Math.min(totalPages, start + visiblePageCount - 1);
     start = Math.max(1, end - visiblePageCount + 1);
     const buttons = [];
     for (let value = start; value <= end; value++) {
-      buttons.push(`<button class="button page-button ${value === page.page ? "is-active" : ""}" type="button" data-page="${value}"${value === page.page ? ' aria-current="page"' : ""}>${value}</button>`);
+      buttons.push(`<button class="button page-button ${value === current ? "is-active" : ""}" type="button" data-page="${value}"${value === current ? ' aria-current="page"' : ""}>${value}</button>`);
     }
     el.innerHTML = `
       <div class="pagination-buttons">
-        <button class="button" type="button" data-page="${page.page - 1}"${page.page <= 1 ? " disabled" : ""}>이전</button>
+        <button class="button" type="button" data-page="${current - 1}"${current <= 1 ? " disabled" : ""}>이전</button>
         ${buttons.join("")}
-        <button class="button" type="button" data-page="${page.page + 1}"${page.hasNext ? "" : " disabled"}>다음</button>
+        <button class="button" type="button" data-page="${current + 1}"${page.hasNext ? "" : " disabled"}>다음</button>
       </div>
     `;
     el.querySelectorAll("[data-page]").forEach((button) => {
-      button.addEventListener("click", () => {
+      button.addEventListener("click", async () => {
         const nextPage = Number(button.dataset.page);
         if (!nextPage || nextPage === currentPage) return;
         currentPage = nextPage;
-        renderProducts();
-        document.querySelector("#product-list")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        button.blur();
+        await renderProducts();
+        app.scrollToElement("#product-list");
       });
     });
   }

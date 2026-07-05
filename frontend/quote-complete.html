@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>견적요청 완료</title>
+  <link rel="stylesheet" href="assets/css/reset.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="site-header"><div class="topbar"><a class="brand" href="index.html">한국콘크리트산업<small>견적요청 완료</small></a><nav class="nav"><a href="products.html">상품</a><a href="cart.html">장바구니</a><a href="mypage.html">마이페이지</a></nav></div></header>
+  <main class="container section">
+    <section class="card empty-state">
+      <strong>견적요청이 접수되었습니다.</strong>
+      <p class="muted">요청번호 <span id="quote-complete-request-no">-</span></p>
+      <div class="row">
+        <a class="button primary" href="mypage.html">마이페이지</a>
+        <a class="button" href="products.html">상품 더 보기</a>
+      </div>
+    </section>
+  </main>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script>
+    (function () {
+      const requestNo = new URLSearchParams(location.search).get("requestNo") || "-";
+      document.querySelector("#quote-complete-request-no").textContent = requestNo;
+    })();
+  </script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 package com.koreaconcrete.civilshop.quote.repository;
 
+import java.util.Collection;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +15,8 @@ public interface QuoteRequestRepository extends JpaRepository<QuoteRequest, Long
 	Page<QuoteRequest> findByUserIdOrderByIdDesc(Long userId, Pageable pageable);
 
 	Page<QuoteRequest> findByStatusOrderByIdDesc(QuoteStatus status, Pageable pageable);
+
+	Page<QuoteRequest> findByStatusInOrderByIdDesc(Collection<QuoteStatus> statuses, Pageable pageable);
 
 	Page<QuoteRequest> findAllByOrderByIdDesc(Pageable pageable);
 }

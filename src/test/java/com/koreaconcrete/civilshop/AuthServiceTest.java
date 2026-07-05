@@ -1,6 +1,7 @@
 package com.koreaconcrete.civilshop;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -21,6 +22,7 @@ import com.koreaconcrete.civilshop.auth.dto.AuthDtos.LoginRequest;
 import com.koreaconcrete.civilshop.auth.dto.AuthDtos.SignupRequest;
 import com.koreaconcrete.civilshop.auth.service.AuthService;
 import com.koreaconcrete.civilshop.category.repository.CategoryRepository;
+import com.koreaconcrete.civilshop.common.exception.BusinessException;
 import com.koreaconcrete.civilshop.common.security.UserPrincipal;
 import com.koreaconcrete.civilshop.pricing.repository.PriceBookRepository;
 import com.koreaconcrete.civilshop.pricing.repository.ProductPriceRepository;
@@ -134,6 +136,32 @@ class AuthServiceTest {
 
 		assertThat(created.email()).isEqualTo(loginId);
 		assertThat(created.roles()).containsExactly("ROLE_OPERATOR");
+	}
+
+	@Test
+	void deletedAdminCannotLoginAgain() {
+		String loginId = "deleted-admin-" + System.nanoTime();
+		var created = userService.createAdmin(new AdminCreateRequest(loginId, "Password1234!", "삭제관리자", "01000000000", "ROLE_ADMIN"));
+
+		userService.deleteAdmin(created.id());
+
+		assertThatThrownBy(() -> authService.login(new LoginRequest(loginId, "Password1234!")))
+				.isInstanceOf(BusinessException.class)
+				.hasMessageContaining("아이디 또는 비밀번호");
+	}
+
+	@Test
+	void deletedAdminTokenCannotUseAdminApi() throws Exception {
+		String loginId = "deleted-token-admin-" + System.nanoTime();
+		var created = userService.createAdmin(new AdminCreateRequest(loginId, "Password1234!", "삭제토큰관리자", "01000000000", "ROLE_ADMIN"));
+		var auth = authService.login(new LoginRequest(loginId, "Password1234!"));
+
+		userService.deleteAdmin(created.id());
+		userRepository.flush();
+
+		mockMvc.perform(get("/api/v1/admin/dashboard")
+						.header("Authorization", "Bearer " + auth.accessToken()))
+				.andExpect(status().isUnauthorized());
 	}
 
 	@Test

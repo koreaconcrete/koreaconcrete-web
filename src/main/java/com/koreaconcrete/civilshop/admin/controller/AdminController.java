@@ -1,6 +1,8 @@
 package com.koreaconcrete.civilshop.admin.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -39,16 +41,23 @@ public class AdminController {
 	@Operation(summary = "관리자 회원 목록")
 	@GetMapping("/users")
 	public PageResponse<AdminUserItem> users(
+			@RequestParam(required = false) String accountType,
 			@RequestParam(defaultValue = "1") int page,
 			@RequestParam(defaultValue = "20") int size
 	) {
-		return userService.adminUsers(page, size);
+		return userService.adminUsers(accountType, page, size);
 	}
 
 	@Operation(summary = "관리자 계정 생성")
 	@PostMapping("/users/admins")
 	public AdminUserItem createAdmin(@Valid @RequestBody AdminCreateRequest request) {
 		return userService.createAdmin(request);
+	}
+
+	@Operation(summary = "관리자 계정 삭제")
+	@DeleteMapping("/users/admins/{id}")
+	public void deleteAdmin(@PathVariable Long id) {
+		userService.deleteAdmin(id);
 	}
 
 	@Operation(summary = "관리자 검색 로그")

@@ -14,7 +14,9 @@ import com.koreaconcrete.civilshop.common.api.PageResponse;
 import com.koreaconcrete.civilshop.common.domain.ProductStatus;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductDetail;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductListItem;
+import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductMoveRequest;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductRequest;
+import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductSortOrderRequest;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductStatusRequest;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.VariantRequest;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.VariantResponse;
@@ -36,12 +38,19 @@ public class AdminProductController {
 	@GetMapping("/products")
 	public PageResponse<ProductListItem> products(
 			@RequestParam(required = false) String keyword,
+			@RequestParam(required = false) Long categoryId,
 			@RequestParam(required = false) ProductStatus status,
 			@RequestParam(defaultValue = "false") boolean includeDeleted,
 			@RequestParam(defaultValue = "1") int page,
 			@RequestParam(defaultValue = "20") int size
 	) {
-		return productService.adminList(keyword, status, includeDeleted, page, size);
+		return productService.adminList(keyword, categoryId, status, includeDeleted, page, size);
+	}
+
+	@Operation(summary = "관리자 상품 상세")
+	@GetMapping("/products/{id}")
+	public ProductDetail detail(@PathVariable Long id) {
+		return productService.detail(id);
 	}
 
 	@Operation(summary = "관리자 상품 생성")
@@ -66,6 +75,18 @@ public class AdminProductController {
 	@PatchMapping("/products/{id}/status")
 	public ProductDetail updateStatus(@PathVariable Long id, @Valid @RequestBody ProductStatusRequest request) {
 		return productService.updateStatus(id, request);
+	}
+
+	@Operation(summary = "관리자 상품 표시 순서 변경")
+	@PatchMapping("/products/{id}/sort-order")
+	public ProductDetail updateSortOrder(@PathVariable Long id, @Valid @RequestBody ProductSortOrderRequest request) {
+		return productService.updateSortOrder(id, request);
+	}
+
+	@Operation(summary = "관리자 상품 위/아래 순서 이동")
+	@PatchMapping("/products/{id}/move")
+	public ProductDetail move(@PathVariable Long id, @Valid @RequestBody ProductMoveRequest request) {
+		return productService.move(id, request);
 	}
 
 	@Operation(summary = "관리자 상품 규격 생성")

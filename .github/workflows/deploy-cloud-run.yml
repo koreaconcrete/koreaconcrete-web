@@ -1,0 +1,67 @@
+name: Deploy Cloud Run
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+      GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY }}
+      IMAGE_URI: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY }}/${{ vars.CLOUD_RUN_SERVICE }}:${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - name: Build image
+        run: docker build --tag "${IMAGE_URI}" .
+
+      - name: Push image
+        run: docker push "${IMAGE_URI}"
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          region: ${{ env.REGION }}
+          service: ${{ env.SERVICE }}
+          image: ${{ env.IMAGE_URI }}
+          flags: >-
+            --allow-unauthenticated
+            --min-instances=1
+            --service-account=${{ vars.CLOUD_RUN_SERVICE_ACCOUNT }}
+          env_vars: |
+            SPRING_PROFILES_ACTIVE=prod
+            DB_URL=${{ secrets.DB_URL }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            CORS_ALLOWED_ORIGINS="${{ vars.CORS_ALLOWED_ORIGINS }}"
+            APP_UPLOAD_PROVIDER=gcs
+            APP_GCS_BUCKET=${{ vars.APP_GCS_BUCKET }}
+            APP_GCS_PUBLIC_URL_PREFIX=https://storage.googleapis.com/${{ vars.APP_GCS_BUCKET }}
+          secrets: |
+            DB_PASSWORD=${{ vars.DB_PASSWORD_SECRET_NAME }}:latest
+            JWT_SECRET=${{ vars.JWT_SECRET_SECRET_NAME }}:latest

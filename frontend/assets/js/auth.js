@@ -137,22 +137,11 @@
   }
 
   function goHomeAfterSignup() {
-    const modal = document.querySelector("#signup-welcome-modal");
     const redirectHome = () => {
       location.href = "index.html";
     };
-    if (!modal) {
-      window.alert("회원가입을 환영합니다.");
-      redirectHome();
-      return;
-    }
-    modal.hidden = false;
-    const timer = window.setTimeout(redirectHome, 1800);
-    modal.querySelector("[data-signup-home]")?.addEventListener("click", () => {
-      window.clearTimeout(timer);
-      redirectHome();
-    }, { once: true });
-    modal.querySelector("[data-signup-home]")?.focus();
+    app.notify("회원가입이 완료되었습니다.");
+    redirectHome();
   }
 
   function loggedInDestination() {
@@ -291,21 +280,154 @@
         </div>
       `;
       bindMypageForms(box);
-      const quotes = await app.request("/quotes/me");
-      const quoteBody = document.querySelector("#my-quotes");
-      if (!quoteBody) return;
-      const rows = (quotes.items || []).map((quote) => app.html`
-        <tr>
-          <td>${quote.requestNo}</td>
-          <td>${quote.companyName}</td>
-          <td>${app.label("quoteStatus", quote.status)}</td>
-          <td>${quote.createdAt || ""}</td>
-        </tr>
-      `).join("");
-      quoteBody.innerHTML = rows || '<tr><td colspan="4" class="empty">아직 주문기록이 없습니다.</td></tr>';
+      await renderMyQuoteHistory();
+      await renderMyConsultationHistory();
     } catch (error) {
       app.setState(box, "로그인이 필요합니다.", "error");
     }
+  }
+
+  async function renderMyQuoteHistory() {
+    const quoteBody = document.querySelector("#my-quotes");
+    if (!quoteBody) return;
+    try {
+      const quotes = await app.request("/quotes/me");
+      const rows = (quotes.items || []).map((quote) => quoteHistoryRows(quote)).join("");
+      quoteBody.innerHTML = rows || '<tr><td colspan="4" class="empty">아직 견적 요청 기록이 없습니다.</td></tr>';
+      bindQuoteHistoryToggle(quoteBody);
+    } catch (error) {
+      quoteBody.innerHTML = `<tr><td colspan="4" class="empty">${app.escapeHtml(messageText(error))}</td></tr>`;
+    }
+  }
+
+  function quoteHistoryRows(quote) {
+    const detailId = "quote-detail-" + quote.id;
+    return `
+      <tr class="quote-history-row" data-quote-toggle="${app.escapeHtml(detailId)}" tabindex="0" role="button" aria-expanded="false" aria-controls="${app.escapeHtml(detailId)}">
+        <td><strong>${app.escapeHtml(quote.requestNo)}</strong></td>
+        <td>${app.escapeHtml(quote.companyName)}</td>
+        <td>${app.escapeHtml(app.workflowLabel("quote", quote.status))}</td>
+        <td><span class="quote-history-date-cell">
+          <span>${app.escapeHtml(quote.createdAt || "")}</span>
+          <span class="quote-history-toggle-label">상세 보기</span>
+        </span></td>
+      </tr>
+      <tr class="quote-history-detail-row" id="${app.escapeHtml(detailId)}" hidden>
+        <td colspan="4">${quoteItemsTable(quote.items || [])}</td>
+      </tr>
+    `;
+  }
+
+  function quoteItemsTable(items) {
+    if (!items.length) {
+      return '<div class="empty quote-history-empty">요청 품목이 없습니다.</div>';
+    }
+    return `
+      <div class="quote-history-detail">
+        <table class="table quote-history-items">
+          <thead><tr><th>상품</th><th>규격</th><th>수량</th><th>단가</th><th>금액</th></tr></thead>
+          <tbody>${items.map(quoteItemRow).join("")}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function quoteItemRow(item) {
+    const product = item.productDeleted
+      ? quoteItemProductLabel(item)
+      : `<a class="line-item" href="product-detail.html?id=${app.escapeHtml(item.productId)}">${quoteItemProductContent(item)}</a>`;
+    return `
+      <tr>
+        <td>${product}</td>
+        <td>${app.escapeHtml(item.variantName || "-")}</td>
+        <td>${app.escapeHtml(item.quantity || "-")}</td>
+        <td>${quoteAmountLabel(item.unitPrice)}</td>
+        <td class="price">${quoteAmountLabel(item.totalAmount || lineTotalAmount(item))}</td>
+      </tr>
+    `;
+  }
+
+  function quoteItemProductLabel(item) {
+    return `
+      <div class="line-item is-disabled">
+        ${quoteItemProductContent(item)}
+        <span class="badge danger quote-history-deleted-badge">삭제된 상품</span>
+      </div>
+    `;
+  }
+
+  function quoteItemProductContent(item) {
+    return `
+      <img class="line-item-thumb" src="${app.escapeHtml(item.productImageUrl || "assets/images/placeholder.svg")}" alt="${app.escapeHtml(item.productName || "상품 이미지")}">
+      <span class="line-item-copy">
+        <strong>${app.escapeHtml(item.productName || "상품명 없음")}</strong>
+        <span>${app.escapeHtml(item.productSummary || "")}</span>
+      </span>
+    `;
+  }
+
+  function lineTotalAmount(item) {
+    const unitPrice = Number(item.unitPrice || 0);
+    const quantity = Number(item.quantity || 0);
+    if (!unitPrice || !quantity) return null;
+    return unitPrice * quantity;
+  }
+
+  function quoteAmountLabel(value) {
+    if (value === null || value === undefined || value === "") return "견적문의";
+    return app.escapeHtml(app.money(value));
+  }
+
+  function bindQuoteHistoryToggle(quoteBody) {
+    if (quoteBody.dataset.quoteToggleBound) return;
+    quoteBody.dataset.quoteToggleBound = "true";
+    quoteBody.addEventListener("click", (event) => {
+      const row = event.target.closest("[data-quote-toggle]");
+      if (!row || !quoteBody.contains(row)) return;
+      toggleQuoteHistoryRow(row);
+    });
+    quoteBody.addEventListener("keydown", (event) => {
+      if (!["Enter", " "].includes(event.key)) return;
+      const row = event.target.closest("[data-quote-toggle]");
+      if (!row || !quoteBody.contains(row)) return;
+      event.preventDefault();
+      toggleQuoteHistoryRow(row);
+    });
+  }
+
+  function toggleQuoteHistoryRow(row) {
+    const detail = document.getElementById(row.dataset.quoteToggle);
+    if (!detail) return;
+    const open = detail.hidden;
+    detail.hidden = !open;
+    row.setAttribute("aria-expanded", String(open));
+    row.classList.toggle("is-open", open);
+    const label = row.querySelector(".quote-history-toggle-label");
+    if (label) label.textContent = open ? "닫기" : "상세 보기";
+  }
+
+  async function renderMyConsultationHistory() {
+    const consultationBody = document.querySelector("#my-consultations");
+    if (!consultationBody) return;
+    try {
+      const consultations = await app.request("/consultations/me");
+      const rows = (consultations.items || []).map((consultation) => app.html`
+        <tr>
+          <td>${consultation.id}</td>
+          <td>${app.label("consultationType", consultation.type)}</td>
+          <td>${consultationProductName(consultation)}</td>
+          <td>${app.workflowLabel("consultation", consultation.status)}</td>
+          <td>${consultation.createdAt || ""}</td>
+        </tr>
+      `).join("");
+      consultationBody.innerHTML = rows || '<tr><td colspan="5" class="empty">아직 상담 요청 기록이 없습니다.</td></tr>';
+    } catch (error) {
+      consultationBody.innerHTML = `<tr><td colspan="5" class="empty">${app.escapeHtml(messageText(error))}</td></tr>`;
+    }
+  }
+
+  function consultationProductName(consultation) {
+    return [consultation.productName, consultation.variantName].filter(Boolean).join(" / ") || "일반 상담";
   }
 
   function bindMypageForms(box) {

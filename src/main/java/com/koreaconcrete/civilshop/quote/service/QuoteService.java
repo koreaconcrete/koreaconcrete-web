@@ -123,11 +123,32 @@ public class QuoteService {
 	}
 
 	public PageResponse<QuoteResponse> adminList(QuoteStatus status, int page, int size) {
+		return adminList(status, null, page, size);
+	}
+
+	public PageResponse<QuoteResponse> adminList(QuoteStatus status, String bucket, int page, int size) {
 		PageRequest pageRequest = PageRequest.of(Math.max(page - 1, 0), size);
-		Page<QuoteRequest> quotes = status == null
-				? quoteRequestRepository.findAllByOrderByIdDesc(pageRequest)
-				: quoteRequestRepository.findByStatusOrderByIdDesc(status, pageRequest);
+		Page<QuoteRequest> quotes;
+		if (status != null) {
+			quotes = quoteRequestRepository.findByStatusOrderByIdDesc(status, pageRequest);
+		} else {
+			List<QuoteStatus> statuses = statusesForBucket(bucket);
+			quotes = statuses.isEmpty()
+					? quoteRequestRepository.findAllByOrderByIdDesc(pageRequest)
+					: quoteRequestRepository.findByStatusInOrderByIdDesc(statuses, pageRequest);
+		}
 		return PageResponse.of(quotes, quotes.stream().map(this::toResponse).toList());
+	}
+
+	private List<QuoteStatus> statusesForBucket(String bucket) {
+		String normalized = bucket == null ? "" : bucket.trim().toUpperCase();
+		return switch (normalized) {
+			case "NEW" -> List.of(QuoteStatus.SUBMITTED);
+			case "ACTIVE" -> List.of(QuoteStatus.SUBMITTED, QuoteStatus.REVIEWING, QuoteStatus.QUOTED, QuoteStatus.NEGOTIATING);
+			case "PROCESSING" -> List.of(QuoteStatus.REVIEWING, QuoteStatus.QUOTED, QuoteStatus.NEGOTIATING);
+			case "DONE" -> List.of(QuoteStatus.APPROVED, QuoteStatus.REJECTED, QuoteStatus.EXPIRED);
+			default -> List.of();
+		};
 	}
 
 	@Transactional

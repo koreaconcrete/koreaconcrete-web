@@ -29,6 +29,7 @@
     const categoryNameInput = form.querySelector('[name="name"]');
     const imageUrlInput = form.querySelector('[name="imageUrl"]');
     const imagePreview = root.querySelector("#admin-category-image-preview");
+    const imageUploadRow = root.querySelector(".admin-upload-row");
     const submitButton = root.querySelector("#admin-category-submit");
     const cancelButton = root.querySelector("#admin-category-cancel");
     const imageInput = root.querySelector("#admin-category-image-upload");
@@ -84,10 +85,11 @@
       parentSelect.value = category.parentId || "";
       activeSelect.value = String(category.active !== false);
       categoryNameInput.value = category.name || "";
-      imageUrlInput.value = category.imageUrl || "";
+      imageUrlInput.value = category.parentId ? "" : category.imageUrl || "";
       submitButton.textContent = "수정 저장";
       cancelButton.hidden = false;
       renderParentSelect();
+      updateImageControls();
       renderImagePreview();
       form.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -101,6 +103,7 @@
       submitButton.textContent = "생성";
       cancelButton.hidden = true;
       renderParentSelect();
+      updateImageControls();
       renderImagePreview();
     }
 
@@ -112,7 +115,7 @@
       body.sortOrder = current && !parentChanged
         ? Number(current.sortOrder || 0)
         : nextSortOrder(body.parentId);
-      body.imageUrl = body.imageUrl?.trim() || null;
+      body.imageUrl = body.parentId ? null : body.imageUrl?.trim() || null;
       body.active = body.active === "true";
       return body;
     }
@@ -130,13 +133,31 @@
 
     function renderImagePreview() {
       if (!imagePreview) return;
+      updateImageControls();
+      if (parentSelect.value) {
+        imagePreview.innerHTML = "";
+        return;
+      }
       const imageUrl = imageUrlInput.value.trim();
       if (imageRemoveButton) {
         imageRemoveButton.disabled = !imageUrl;
       }
       imagePreview.innerHTML = imageUrl
         ? `<img src="${app.escapeHtml(imageUrl)}" alt="대표 이미지 미리보기"><span class="muted">대표 이미지가 설정되어 있습니다.</span>`
-        : '<span class="muted">대표 이미지가 등록되지 않았습니다.</span>';
+        : `<span class="muted">대표 이미지가 등록되지 않았습니다.</span>`;
+    }
+
+    function updateImageControls() {
+      const disabled = Boolean(parentSelect.value);
+      if (imagePreview) imagePreview.hidden = disabled;
+      if (imageUploadRow) imageUploadRow.hidden = disabled;
+      imageUrlInput.disabled = disabled;
+      if (imageInput) imageInput.disabled = disabled;
+      root.querySelector("#admin-category-image-upload-button")?.toggleAttribute("disabled", disabled);
+      if (disabled) {
+        imageUrlInput.value = "";
+        if (imageInput) imageInput.value = "";
+      }
     }
 
     const render = async () => {
@@ -146,7 +167,7 @@
       root.querySelector("tbody").innerHTML = rows.length ? rows.map((c) => `
         <tr>
           <td>${app.escapeHtml("· ".repeat(Math.max(c.depth - 1, 0)) + c.name)}</td>
-          <td>${c.imageUrl ? `<img class="admin-category-thumb" src="${app.escapeHtml(c.imageUrl)}" alt="${app.escapeHtml(c.name)}">` : '<span class="muted">미등록</span>'}</td>
+          <td>${categoryImageCell(c)}</td>
           <td>${app.escapeHtml(c.active ? "노출" : "숨김")}</td>
           <td>
             <div class="row admin-order-actions">
@@ -163,6 +184,15 @@
         </tr>
       `).join("") : `<tr><td colspan="5" class="empty">등록된 카테고리가 없습니다.</td></tr>`;
     };
+
+    function categoryImageCell(category) {
+      if (category.parentId || Number(category.depth || 0) > 1) {
+        return '<span class="muted">-</span>';
+      }
+      return category.imageUrl
+        ? `<img class="admin-category-thumb" src="${app.escapeHtml(category.imageUrl)}" alt="${app.escapeHtml(category.name)}">`
+        : '<span class="muted">미등록</span>';
+    }
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const body = categoryFormBody();
@@ -171,7 +201,7 @@
           method: editingCategoryId ? "PATCH" : "POST",
           body
         });
-        app.setState("#admin-category-state", editingCategoryId ? "카테고리가 수정되었습니다." : "카테고리가 생성되었습니다.", "notice");
+        app.notify(editingCategoryId ? "카테고리가 수정되었습니다." : "카테고리가 생성되었습니다.");
         resetForm();
         await render();
       } catch (error) {
@@ -205,6 +235,7 @@
     });
     root.querySelector("#admin-category-image-upload-button")?.addEventListener("click", uploadCategoryImage);
     imageRemoveButton?.addEventListener("click", removeCategoryImage);
+    parentSelect?.addEventListener("change", renderImagePreview);
 
     async function deleteCategory(categoryId) {
       const category = rows.find((item) => item.id === categoryId);
@@ -217,7 +248,7 @@
       try {
         await app.request("/admin/categories/" + categoryId, { method: "DELETE" });
         if (editingCategoryId === categoryId) resetForm();
-        app.setState("#admin-category-state", "카테고리가 삭제되었습니다.", "notice");
+        app.notify("카테고리가 삭제되었습니다.");
         await render();
       } catch (error) {
         app.setState("#admin-category-state", error.message, "error");
@@ -326,13 +357,27 @@
     return headers;
   }
 
+  const adminUserPageSize = 20;
+  let memberUserPage = 1;
+  let adminAccountPage = 1;
+
   async function users() {
     const root = document.querySelector("#admin-users");
     if (!root) return;
     try {
-      const data = await app.request("/admin/users");
-      const memberRows = (data.items || []).filter((user) => !isConsoleAccount(user));
-      root.innerHTML = `<table class="table"><thead><tr><th>번호</th><th>아이디</th><th>이름</th><th>연락처</th><th>상태</th></tr></thead><tbody>${memberRows.length ? memberRows.map((u) => app.html`<tr><td>${u.id}</td><td>${u.email}</td><td>${u.name}</td><td>${u.phone || ""}</td><td>${app.label("userStatus", u.status)}</td></tr>`).join("") : '<tr><td colspan="5" class="empty">등록된 일반 회원이 없습니다.</td></tr>'}</tbody></table>`;
+      const data = await app.request(`/admin/users?accountType=MEMBER&page=${memberUserPage}&size=${adminUserPageSize}`);
+      const memberRows = data.items || [];
+      root.innerHTML = `<table class="table"><thead><tr><th>번호</th><th>아이디</th><th>이름</th><th>연락처</th><th>상태</th></tr></thead><tbody>${memberRows.length ? memberRows.map((u) => app.html`<tr><td>${u.id}</td><td>${u.email}</td><td>${u.name}</td><td>${u.phone || ""}</td><td>${app.label("userStatus", u.status)}</td></tr>`).join("") : '<tr><td colspan="5" class="empty">등록된 일반 회원이 없습니다.</td></tr>'}</tbody></table><div class="pagination compact" id="member-user-pagination">${paginationButtons(data, "member-user-page")}</div>`;
+      root.querySelectorAll("[data-member-user-page]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const nextPage = Number(button.dataset.memberUserPage);
+          if (!nextPage || nextPage === memberUserPage) return;
+          memberUserPage = nextPage;
+          button.blur();
+          await users();
+          app.scrollToElement("#admin-users");
+        });
+      });
     } catch (error) {
       app.setState(root, error.message, "error");
     }
@@ -346,9 +391,44 @@
 
     async function renderList() {
       try {
-        const data = await app.request("/admin/users?size=100");
-        const rows = (data.items || []).filter(isConsoleAccount);
-        list.innerHTML = `<table class="table"><thead><tr><th>번호</th><th>아이디</th><th>이름</th><th>연락처</th><th>권한</th><th>상태</th></tr></thead><tbody>${rows.length ? rows.map((u) => app.html`<tr><td>${u.id}</td><td>${u.email}</td><td>${u.name}</td><td>${u.phone || ""}</td><td>${app.rolesLabel(u.roles)}</td><td>${app.label("userStatus", u.status)}</td></tr>`).join("") : '<tr><td colspan="6" class="empty">등록된 관리자 계정이 없습니다.</td></tr>'}</tbody></table>`;
+        const data = await app.request(`/admin/users?accountType=ADMIN&page=${adminAccountPage}&size=${adminUserPageSize}`);
+        const currentUser = app.currentUser();
+        const rows = data.items || [];
+        list.innerHTML = `<table class="table"><thead><tr><th>번호</th><th>아이디</th><th>이름</th><th>연락처</th><th>권한</th><th>상태</th><th></th></tr></thead><tbody>${rows.length ? rows.map((u) => `
+          <tr>
+            <td>${app.escapeHtml(u.id)}</td>
+            <td>${app.escapeHtml(u.email)}</td>
+            <td>${app.escapeHtml(u.name)}</td>
+            <td>${app.escapeHtml(u.phone || "")}</td>
+            <td>${app.escapeHtml(app.rolesLabel(u.roles))}</td>
+            <td>${app.escapeHtml(app.label("userStatus", u.status))}</td>
+            <td>${currentUser && Number(currentUser.id) === Number(u.id)
+              ? '<span class="muted">현재 계정</span>'
+              : `<button class="button danger" type="button" data-admin-delete="${app.escapeHtml(u.id)}" data-admin-name="${app.escapeHtml(u.name)}">삭제</button>`}</td>
+          </tr>
+        `).join("") : '<tr><td colspan="7" class="empty">등록된 관리자 계정이 없습니다.</td></tr>'}</tbody></table><div class="pagination compact" id="admin-account-pagination">${paginationButtons(data, "admin-account-page")}</div>`;
+        list.querySelectorAll("[data-admin-account-page]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const nextPage = Number(button.dataset.adminAccountPage);
+            if (!nextPage || nextPage === adminAccountPage) return;
+            adminAccountPage = nextPage;
+            button.blur();
+            await renderList();
+            app.scrollToElement("#admin-account-list");
+          });
+        });
+        list.querySelectorAll("[data-admin-delete]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            if (!window.confirm(`"${button.dataset.adminName || "선택한 관리자"}" 관리자 계정을 삭제할까요?`)) return;
+            try {
+              await app.request("/admin/users/admins/" + button.dataset.adminDelete, { method: "DELETE" });
+              app.setState("#admin-account-state", "관리자 계정이 삭제되었습니다.", "notice");
+              renderList();
+            } catch (error) {
+              app.setState("#admin-account-state", formatError(error), "error");
+            }
+          });
+        });
       } catch (error) {
         app.setState(list, error.message, "error");
       }
@@ -379,6 +459,7 @@
           });
           form.reset();
           app.setState("#admin-account-state", `${created.name} 계정이 생성되었습니다.`, "notice");
+          adminAccountPage = 1;
           renderList();
         } catch (error) {
           app.setState("#admin-account-state", formatError(error), "error");
@@ -394,6 +475,14 @@
     return roles.includes("ROLE_ADMIN") || roles.includes("ROLE_OPERATOR") || roles.includes("ROLE_PRODUCT_MANAGER");
   }
 
+  function paginationButtons(data, datasetName) {
+    const datasetAttr = `data-${datasetName}`;
+    return app.paginationControls(data, {
+      size: adminUserPageSize,
+      pageAttributes: (page) => `${datasetAttr}="${page}"`
+    });
+  }
+
   function formatError(error) {
     if (error.details && typeof error.details === "object") {
       return Object.values(error.details).join(" ");
@@ -401,30 +490,10 @@
     return error.message || "요청 처리 중 오류가 발생했습니다.";
   }
 
-  async function freight() {
-    const root = document.querySelector("#admin-freight");
-    if (!root) return;
-    root.querySelector("form").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const form = event.currentTarget;
-      const data = Object.fromEntries(new FormData(form).entries());
-      data.baseFreightAmount = Number(data.baseFreightAmount);
-      data.active = true;
-      try {
-        await app.request("/admin/freight-rate-rules", { method: "POST", body: data });
-        app.setState("#freight-state", "운반비 규칙이 저장되었습니다.", "notice");
-        form.reset();
-      } catch (error) {
-        app.setState("#freight-state", error.message, "error");
-      }
-    });
-  }
-
   document.addEventListener("DOMContentLoaded", () => {
     dashboard();
     categories();
     users();
     adminAccounts();
-    freight();
   });
 })();

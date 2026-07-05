@@ -42,6 +42,18 @@
   box-shadow: inset 3px 0 0 var(--brand);
 }
 
+.admin-nav-count {
+  min-width: 24px;
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #e11d48;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .admin-main {
   min-width: 0;
   padding: 28px;
@@ -137,6 +149,83 @@
 
 .admin-form-actions {
   justify-content: flex-start;
+}
+
+.admin-list-section,
+.admin-product-root,
+.admin-product-category {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-product-root[hidden],
+.admin-product-category[hidden] {
+  display: none !important;
+}
+
+.admin-list-section {
+  margin-top: 22px;
+}
+
+.admin-list-section h2,
+.admin-product-root h2 {
+  font-size: 22px;
+  line-height: 1.3;
+}
+
+.admin-quote-items {
+  gap: 14px;
+}
+
+.admin-quote-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  text-align: right;
+}
+
+.admin-quote-total span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.admin-quote-total strong {
+  color: var(--brand-dark);
+  font-size: 22px;
+}
+
+.admin-quote-total small {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.admin-product-tree {
+  display: grid;
+  gap: 26px;
+}
+
+.admin-product-category-list {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-product-category {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-product-category h3 {
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.admin-status-select {
+  min-width: 112px;
 }
 
 .category-image-preview {

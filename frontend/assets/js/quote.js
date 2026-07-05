@@ -57,7 +57,10 @@
           <span class="muted">총 ${items.length}개 품목</span>
           ${hasQuoteOnly ? '<p class="muted">가격 미등록 품목은 예상 금액에 포함되지 않습니다.</p>' : ""}
         </div>
-        <strong>총 예상 금액 ${totalLabel}</strong>
+        <div class="quote-total-amount">
+          <strong>총 예상 금액 ${totalLabel}</strong>
+          <p class="muted">운반비는 별도입니다.</p>
+        </div>
       </div>
     `;
   }
@@ -90,9 +93,7 @@
       };
       try {
         const response = await app.createQuoteFromCart(body);
-        document.querySelector("#quote-state").className = "notice";
-        document.querySelector("#quote-state").textContent = `견적요청이 접수되었습니다. 요청번호 ${response.requestNo}`;
-        renderItems();
+        location.href = "quote-complete.html?requestNo=" + encodeURIComponent(response.requestNo || "");
       } catch (error) {
         app.setState("#quote-state", error.message, "error");
       }
