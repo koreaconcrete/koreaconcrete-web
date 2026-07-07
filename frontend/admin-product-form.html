@@ -15,9 +15,14 @@
         <section class="admin-form-section">
           <div class="section-head compact"><h2>기본 정보</h2></div>
           <div class="admin-form-grid">
-            <label class="admin-field">카테고리
+            <label class="admin-field">최상위 카테고리
+              <select class="input" name="rootCategoryId" required>
+                <option value="">최상위 카테고리 선택</option>
+              </select>
+            </label>
+            <label class="admin-field">세부 카테고리
               <select class="input" name="categoryId" required>
-                <option value="">카테고리 선택</option>
+                <option value="">최상위 카테고리를 먼저 선택</option>
               </select>
             </label>
             <label class="admin-field">상품 상태

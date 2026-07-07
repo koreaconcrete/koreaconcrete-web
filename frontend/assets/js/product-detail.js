@@ -94,6 +94,7 @@
             <span class="badge">${app.escapeHtml(product.category.name)}</span>
             <h1>${app.escapeHtml(product.name)}</h1>
             <p class="muted">${app.escapeHtml(product.description || "")}</p>
+            ${customMadeNotice()}
             <div id="variant-spec" class="card detail-variant-summary"></div>
           </section>
           <div class="detail-image detail-main-image"><img src="${app.escapeHtml(mainImageUrl)}" alt="${app.escapeHtml(product.name)}"></div>
@@ -215,6 +216,16 @@
   function selectedVariant() {
     if (!product.variants.length) return null;
     return product.variants.find((variant) => variant.id === selectedVariantId) || product.variants[0];
+  }
+
+  function customMadeNotice() {
+    if (!product.customMade) return "";
+    return `
+      <div class="custom-made-notice">
+        <strong>주문제작 상품</strong>
+        <span>필요한 규격이 목록과 다르면 상담 요청 또는 견적요청 시 원하는 규격으로 변경해 요청할 수 있습니다.</span>
+      </div>
+    `;
   }
 
   function detailImagesByLabel(label) {

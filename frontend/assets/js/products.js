@@ -283,7 +283,8 @@
     if (!el) return;
     try {
       app.setState(el, "상품을 불러오는 중입니다.", "notice");
-      const keyword = document.querySelector("#keyword-filter")?.value || app.qs("keyword", "");
+      const keywordInput = document.querySelector("#keyword-filter");
+      const keyword = keywordInput ? keywordInput.value.trim() : app.qs("keyword", "").trim();
       saveRecentSearch(keyword);
       const categorySelect = document.querySelector("#category-filter");
       const categoryId = categorySelect?.dataset.selectedCategoryId || categorySelect?.value || app.qs("categoryId", "");

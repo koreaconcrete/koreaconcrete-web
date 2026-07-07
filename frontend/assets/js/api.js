@@ -717,6 +717,7 @@
     const path = location.pathname.split("/").pop() || "index.html";
     const consoleUser = hasAnyRole(user, ["ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_PRODUCT_MANAGER"]);
     const fixedLinks = [
+      { href: "company.html", label: "회사 소개" },
       { href: "products.html", label: "상품" },
       { href: "cart.html", label: "장바구니" },
       { href: "quote-new.html", label: "견적요청" }

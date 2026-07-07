@@ -375,7 +375,14 @@
   }
 
   function fillProductForm(form, product) {
-    form.categoryId.value = String(product.category.id);
+    const categoryId = String(product.category.id);
+    const rootCategoryId = String(rootCategoryIdFor(categoryId) || "");
+    if (form.rootCategoryId) {
+      renderRootCategoryOptions(form, rootCategoryId);
+      form.rootCategoryId.value = rootCategoryId;
+    }
+    renderCategoryOptions(form, categoryId);
+    form.categoryId.value = categoryId;
     form.name.value = product.name || "";
     form.summary.value = product.summary || "";
     form.searchKeywords.value = product.searchKeywords || "";
@@ -401,9 +408,11 @@
     try {
       const tree = await app.request("/categories/tree");
       categoryOptions = flattenCategories(tree);
+      renderRootCategoryOptions(form, "");
       renderCategoryOptions(form, "");
     } catch (error) {
       categoryOptions = [];
+      renderRootCategoryOptions(form, "");
       renderCategoryOptions(form, "");
       app.setState("#admin-product-form-state", "카테고리 목록을 불러오지 못했습니다. " + error.message, "error");
     }
@@ -426,20 +435,44 @@
     });
   }
 
-  function renderCategoryOptions(form, selectedId) {
-    const select = form?.categoryId;
+  function renderRootCategoryOptions(form, selectedId) {
+    const select = form?.rootCategoryId;
     if (!select) return;
     const currentValue = selectedId || select.value || "";
-    const productCategories = categoryOptions.filter(isProductCategory);
-    select.innerHTML = `<option value="">세부 카테고리 선택</option>` + productCategories.map((category) => {
+    const roots = categoryOptions.filter((category) => !category.parentId && category.depth === 1);
+    select.innerHTML = `<option value="">최상위 카테고리 선택</option>` + roots.map((category) => {
       const activeLabel = category.active === false ? " (비활성)" : "";
-      return `<option value="${category.id}">${app.escapeHtml(category.pathName + activeLabel)}</option>`;
+      return `<option value="${category.id}">${app.escapeHtml(category.name + activeLabel)}</option>`;
     }).join("");
     select.value = currentValue;
   }
 
+  function renderCategoryOptions(form, selectedId) {
+    const select = form?.categoryId;
+    if (!select) return;
+    const currentValue = selectedId || select.value || "";
+    const rootId = Number(form?.rootCategoryId?.value || rootCategoryIdFor(currentValue) || 0);
+    const productCategories = categoryOptions
+      .filter(isProductCategory)
+      .filter((category) => !rootId || Number(category.parentId) === rootId);
+    select.disabled = !rootId;
+    select.innerHTML = `<option value="">${rootId ? "세부 카테고리 선택" : "최상위 카테고리를 먼저 선택"}</option>` + productCategories.map((category) => {
+      const activeLabel = category.active === false ? " (비활성)" : "";
+      return `<option value="${category.id}">${app.escapeHtml(category.name + activeLabel)}</option>`;
+    }).join("");
+    select.value = currentValue;
+    if (currentValue && select.value !== currentValue) {
+      select.value = "";
+    }
+  }
+
   function isProductCategory(category) {
     return category.parentId && category.depth === 2 && category.isLeaf;
+  }
+
+  function rootCategoryIdFor(categoryId) {
+    const category = categoryOptions.find((item) => Number(item.id) === Number(categoryId));
+    return category?.parentId || "";
   }
 
   function bindForm(form) {
@@ -449,6 +482,9 @@
     });
     form.addEventListener("change", (event) => {
       if (event.target.closest("#admin-variant-list")) return;
+      if (event.target.name === "rootCategoryId") {
+        renderCategoryOptions(form, "");
+      }
       renderPreview();
     });
     form.querySelector("#admin-image-upload-button")?.addEventListener("click", uploadSelectedImages);
@@ -473,7 +509,6 @@
     try {
       validateVariantRows();
       const productId = currentProduct?.id || app.qs("id");
-      const creatingProduct = !productId;
       const path = productId ? "/admin/products/" + productId : "/admin/products";
       const method = productId ? "PATCH" : "POST";
       const saved = await app.request(path, { method, body: productPayload(form) });
@@ -492,10 +527,7 @@
       renderVariantList();
       renderPreview();
       app.notify(`상품, 규격, 가격이 저장되었습니다. ID ${currentProduct.id}`);
-      if (creatingProduct) {
-        location.href = "admin-products.html";
-        return;
-      }
+      location.href = "admin-products.html";
     } catch (error) {
       app.setState("#admin-product-form-state", error.message, "error");
     }
@@ -506,6 +538,7 @@
     if (!data.categoryId) {
       throw new Error("상품을 연결할 세부 카테고리를 선택해주세요.");
     }
+    delete data.rootCategoryId;
     data.categoryId = Number(data.categoryId);
     const selectedCategory = categoryOptions.find((category) => category.id === data.categoryId);
     if (!selectedCategory || !isProductCategory(selectedCategory)) {
