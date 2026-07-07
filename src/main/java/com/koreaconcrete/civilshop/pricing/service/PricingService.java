@@ -88,6 +88,13 @@ public class PricingService {
 		return toSummary(price);
 	}
 
+	@Transactional
+	public void deletePrice(Long priceId) {
+		ProductPrice price = productPriceRepository.findById(priceId)
+				.orElseThrow(() -> BusinessException.notFound("가격을 찾을 수 없습니다."));
+		productPriceRepository.delete(price);
+	}
+
 	public Integer priceSnapshot(Long variantId) {
 		return productPriceRepository.findFirstByVariantIdOrderByIdDesc(variantId)
 				.map(ProductPrice::getSalePrice)

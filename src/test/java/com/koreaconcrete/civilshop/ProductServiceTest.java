@@ -15,6 +15,7 @@ import com.koreaconcrete.civilshop.common.domain.ProductStatus;
 import com.koreaconcrete.civilshop.common.exception.BusinessException;
 import com.koreaconcrete.civilshop.pricing.repository.PriceBookRepository;
 import com.koreaconcrete.civilshop.pricing.repository.ProductPriceRepository;
+import com.koreaconcrete.civilshop.pricing.service.PricingService;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductMoveRequest;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductRequest;
 import com.koreaconcrete.civilshop.product.entity.Product;
@@ -43,6 +44,9 @@ class ProductServiceTest {
 
 	@Autowired
 	ProductPriceRepository productPriceRepository;
+
+	@Autowired
+	PricingService pricingService;
 
 	@Test
 	void productListAndDetailWork() {
@@ -81,6 +85,24 @@ class ProductServiceTest {
 				.get()
 				.extracting("status")
 				.isEqualTo(ProductStatus.DELETED);
+	}
+
+	@Test
+	void deletedPriceNoLongerAppearsOnProductDetail() {
+		TestFixtures fixtures = TestFixtures.product(
+				categoryRepository,
+				productRepository,
+				productVariantRepository,
+				priceBookRepository,
+				productPriceRepository,
+				"delete-price-" + System.nanoTime()
+		);
+		Long priceId = productService.detail(fixtures.product.getId()).variants().get(0).price().id();
+
+		pricingService.deletePrice(priceId);
+
+		assertThat(productPriceRepository.findFirstByVariantIdOrderByIdDesc(fixtures.variant.getId())).isEmpty();
+		assertThat(productService.detail(fixtures.product.getId()).variants().get(0).price()).isNull();
 	}
 
 	@Test

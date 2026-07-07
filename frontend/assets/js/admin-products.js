@@ -615,6 +615,8 @@
       const salePrice = parseOptionalInteger(row.salePrice, `${row.variantName} 판매단가`);
       if (salePrice !== null) {
         await savePrice(productId, variant.id, row, salePrice);
+      } else if (row.priceId) {
+        await deletePrice(row);
       }
     }
   }
@@ -639,6 +641,11 @@
       body
     });
     row.priceId = saved.id;
+  }
+
+  async function deletePrice(row) {
+    await app.request("/admin/product-prices/" + row.priceId, { method: "DELETE" });
+    row.priceId = null;
   }
 
   function normalizeNumberText(value) {
