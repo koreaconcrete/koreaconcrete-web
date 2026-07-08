@@ -200,7 +200,7 @@
         ${specSection(specs, constructionImages, dimensionImages)}
         ${sheetImages.length ? `
           <section class="section product-media-section">
-            <h2>제품 이미지 및 규격표</h2>
+            <h2>제품 상세</h2>
             <div class="media-sheet">${sheetImages.map((media) => `<img src="${app.escapeHtml(media.url)}" alt="${app.escapeHtml(media.altText || product.name)}">`).join("")}</div>
           </section>
         ` : ""}

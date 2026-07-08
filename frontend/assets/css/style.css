@@ -1838,6 +1838,15 @@ label.field {
   position: static;
 }
 
+.category-menu-main {
+  display: inline-flex;
+  align-items: center;
+}
+
+.category-menu-toggle {
+  display: none;
+}
+
 .category-pill {
   min-height: 36px;
   display: inline-flex;
@@ -2397,15 +2406,41 @@ label.field {
     width: 100%;
   }
 
+  .category-menu-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    width: 100%;
+  }
+
   .category-menu-item .category-pill {
     width: 100%;
   }
 
+  .category-menu-toggle {
+    min-width: 52px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(22, 112, 95, 0.22);
+    border-radius: 999px;
+    padding: 8px 10px;
+    color: var(--brand-dark);
+    background: var(--brand-soft);
+    font-size: 13px;
+    font-weight: 850;
+  }
+
   .category-mega-menu {
+    display: none;
     position: static;
     width: 100%;
     max-height: none;
     margin-top: 8px;
+  }
+
+  .category-menu-item.is-open .category-mega-menu {
+    display: block;
   }
 
   .category-mega-section {

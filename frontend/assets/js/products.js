@@ -159,7 +159,7 @@
           <a class="category-pill ${activeRootId ? "" : "is-active"}" href="products.html">전체</a>
           ${rootLinks}
         </div>
-        <p class="category-filter-help">최상위 카테고리에 마우스를 올리면 세부 카테고리와 상품을 바로 볼 수 있습니다.</p>
+        <p class="category-filter-help">최상위 카테고리에서 세부 카테고리와 상품을 바로 볼 수 있습니다.</p>
       `;
       bindCategoryHoverMenus(el);
       updateCategoryPillState(app.qs("categoryId", ""));
@@ -181,7 +181,10 @@
     const menu = await categoryMegaMenu(root);
     return `
       <div class="category-menu-item">
-        <a class="category-pill ${activeRootId === root.id ? "is-active" : ""}" href="products.html?categoryId=${app.escapeHtml(root.id)}">${app.escapeHtml(root.name)}</a>
+        <div class="category-menu-main">
+          <a class="category-pill ${activeRootId === root.id ? "is-active" : ""}" href="products.html?categoryId=${app.escapeHtml(root.id)}">${app.escapeHtml(root.name)}</a>
+          <button class="category-menu-toggle" type="button" aria-expanded="false" aria-label="${app.escapeHtml(root.name)} 세부 카테고리 보기" data-category-menu-toggle>세부</button>
+        </div>
         ${menu}
       </div>
     `;
@@ -240,10 +243,20 @@
       item.dataset.hoverMenuBound = "true";
       item.addEventListener("mouseenter", () => openCategoryMenu(item));
       item.addEventListener("mouseleave", () => closeCategoryMenuSoon(item));
-      item.addEventListener("focusin", () => openCategoryMenu(item));
+      item.addEventListener("focusin", (event) => {
+        if (event.target.closest("[data-category-menu-toggle]")) return;
+        openCategoryMenu(item);
+      });
       item.addEventListener("focusout", (event) => {
         if (item.contains(event.relatedTarget)) return;
         closeCategoryMenuSoon(item);
+      });
+      item.querySelector("[data-category-menu-toggle]")?.addEventListener("click", () => {
+        if (item.classList.contains("is-open")) {
+          closeCategoryMenu(item);
+        } else {
+          openCategoryMenu(item);
+        }
       });
     });
   }
@@ -255,18 +268,32 @@
       categoryMenuCloseTimers.delete(item);
     }
     document.querySelectorAll(".category-menu-item.is-open").forEach((openItem) => {
-      if (openItem !== item) openItem.classList.remove("is-open");
+      if (openItem !== item) setCategoryMenuOpen(openItem, false);
     });
-    item.classList.add("is-open");
+    setCategoryMenuOpen(item, true);
   }
 
   function closeCategoryMenuSoon(item) {
     const timer = categoryMenuCloseTimers.get(item);
     if (timer) clearTimeout(timer);
     categoryMenuCloseTimers.set(item, setTimeout(() => {
-      item.classList.remove("is-open");
+      setCategoryMenuOpen(item, false);
       categoryMenuCloseTimers.delete(item);
     }, 220));
+  }
+
+  function closeCategoryMenu(item) {
+    const timer = categoryMenuCloseTimers.get(item);
+    if (timer) {
+      clearTimeout(timer);
+      categoryMenuCloseTimers.delete(item);
+    }
+    setCategoryMenuOpen(item, false);
+  }
+
+  function setCategoryMenuOpen(item, open) {
+    item.classList.toggle("is-open", open);
+    item.querySelector("[data-category-menu-toggle]")?.setAttribute("aria-expanded", String(open));
   }
 
   async function renderPopular() {
