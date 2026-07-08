@@ -31,12 +31,8 @@
   }
 
   function dimensionText(variant) {
-    const main = [variant.widthMm, variant.lengthMm, variant.heightMm]
-      .map(formatNumber)
-      .filter(Boolean);
     const thickness = formatNumber(variant.thicknessMm);
     const parts = [];
-    if (main.length) parts.push(`${main.join(" x ")} mm`);
     if (thickness) parts.push(`두께 ${thickness} mm`);
     return parts.join(" / ");
   }

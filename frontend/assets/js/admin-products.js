@@ -12,9 +12,6 @@
   let tempVariantSeq = 1;
   const adminProductFetchSize = 200;
   const variantDecimalFields = new Map([
-    ["widthMm", "폭(mm)"],
-    ["lengthMm", "길이(mm)"],
-    ["heightMm", "높이(mm)"],
     ["thicknessMm", "두께(mm)"],
     ["weightKg", "중량(kg)"],
     ["twentyFiveTonQuantity", "25톤"]
@@ -334,9 +331,6 @@
       key: String(variant.id),
       id: variant.id,
       variantName: variant.variantName || "",
-      widthMm: valueOrEmpty(variant.widthMm),
-      lengthMm: valueOrEmpty(variant.lengthMm),
-      heightMm: valueOrEmpty(variant.heightMm),
       thicknessMm: valueOrEmpty(variant.thicknessMm),
       weightKg: valueOrEmpty(variant.weightKg),
       twentyFiveTonQuantity: valueOrEmpty(variant.twentyFiveTonQuantity),
@@ -355,9 +349,6 @@
       key: "new-" + tempVariantSeq++,
       id: null,
       variantName: "",
-      widthMm: "",
-      lengthMm: "",
-      heightMm: "",
       thicknessMm: "",
       weightKg: "",
       twentyFiveTonQuantity: "",
@@ -597,9 +588,9 @@
     for (const row of editableVariantRows()) {
       const variantBody = {
         variantName: row.variantName.trim(),
-        widthMm: parseOptionalDecimal(row.widthMm, `${row.variantName} 폭(mm)`),
-        lengthMm: parseOptionalDecimal(row.lengthMm, `${row.variantName} 길이(mm)`),
-        heightMm: parseOptionalDecimal(row.heightMm, `${row.variantName} 높이(mm)`),
+        widthMm: null,
+        lengthMm: null,
+        heightMm: null,
         thicknessMm: parseOptionalDecimal(row.thicknessMm, `${row.variantName} 두께(mm)`),
         weightKg: parseOptionalDecimal(row.weightKg, `${row.variantName} 중량(kg)`),
         twentyFiveTonQuantity: parseOptionalDecimal(row.twentyFiveTonQuantity, `${row.variantName} 25톤`),
@@ -1021,9 +1012,6 @@
         </div>
         <div class="admin-variant-fields">
           ${variantInput(row, "unit", "단위", "개")}
-          ${variantInput(row, "widthMm", "폭(mm)", "300", "number")}
-          ${variantInput(row, "lengthMm", "길이(mm)", "1000", "number")}
-          ${variantInput(row, "heightMm", "높이(mm)", "150", "number")}
           ${variantInput(row, "thicknessMm", "두께(mm)", "50", "number")}
           ${variantInput(row, "weightKg", "중량(kg)", "18", "number")}
           ${variantInput(row, "twentyFiveTonQuantity", "25톤", "예: 300", "number")}

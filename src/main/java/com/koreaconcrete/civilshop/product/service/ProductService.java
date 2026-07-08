@@ -387,9 +387,9 @@ public class ProductService {
 
 	private void applyVariant(ProductVariant variant, VariantRequest request) {
 		variant.setVariantName(request.variantName());
-		variant.setWidthMm(request.widthMm());
-		variant.setLengthMm(request.lengthMm());
-		variant.setHeightMm(request.heightMm());
+		variant.setWidthMm(null);
+		variant.setLengthMm(null);
+		variant.setHeightMm(null);
 		variant.setThicknessMm(request.thicknessMm());
 		variant.setWeightKg(request.weightKg());
 		variant.setTwentyFiveTonQuantity(request.twentyFiveTonQuantity());

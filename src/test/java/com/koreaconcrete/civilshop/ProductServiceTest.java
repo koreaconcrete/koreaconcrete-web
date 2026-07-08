@@ -3,6 +3,8 @@ package com.koreaconcrete.civilshop;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +20,7 @@ import com.koreaconcrete.civilshop.pricing.repository.ProductPriceRepository;
 import com.koreaconcrete.civilshop.pricing.service.PricingService;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductMoveRequest;
 import com.koreaconcrete.civilshop.product.dto.ProductDtos.ProductRequest;
+import com.koreaconcrete.civilshop.product.dto.ProductDtos.VariantRequest;
 import com.koreaconcrete.civilshop.product.entity.Product;
 import com.koreaconcrete.civilshop.product.repository.ProductRepository;
 import com.koreaconcrete.civilshop.product.repository.ProductVariantRepository;
@@ -103,6 +106,43 @@ class ProductServiceTest {
 
 		assertThat(productPriceRepository.findFirstByVariantIdOrderByIdDesc(fixtures.variant.getId())).isEmpty();
 		assertThat(productService.detail(fixtures.product.getId()).variants().get(0).price()).isNull();
+	}
+
+	@Test
+	void variantWidthLengthHeightAreNotStored() {
+		TestFixtures fixtures = TestFixtures.product(
+				categoryRepository,
+				productRepository,
+				productVariantRepository,
+				priceBookRepository,
+				productPriceRepository,
+				"dimensionless-variant-" + System.nanoTime()
+		);
+
+		var response = productService.updateVariant(fixtures.variant.getId(), new VariantRequest(
+				"400x600x1000",
+				new BigDecimal("400"),
+				new BigDecimal("600"),
+				new BigDecimal("1000"),
+				new BigDecimal("120"),
+				new BigDecimal("140.5"),
+				new BigDecimal("80"),
+				"개",
+				null,
+				ProductStatus.ON_SALE
+		));
+
+		assertThat(response.widthMm()).isNull();
+		assertThat(response.lengthMm()).isNull();
+		assertThat(response.heightMm()).isNull();
+		assertThat(productVariantRepository.findById(fixtures.variant.getId()))
+				.get()
+				.satisfies(variant -> {
+					assertThat(variant.getWidthMm()).isNull();
+					assertThat(variant.getLengthMm()).isNull();
+					assertThat(variant.getHeightMm()).isNull();
+					assertThat(variant.getThicknessMm()).isEqualByComparingTo("120");
+				});
 	}
 
 	@Test
