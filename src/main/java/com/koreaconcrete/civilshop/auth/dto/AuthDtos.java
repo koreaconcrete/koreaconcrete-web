@@ -19,7 +19,8 @@ public final class AuthDtos {
 			String email,
 			@NotBlank(message = "비밀번호를 입력해주세요.") @Size(min = 8, message = "비밀번호는 8자 이상이어야 합니다.") String password,
 			@NotBlank(message = "이름을 입력해주세요.") String name,
-			String phone,
+			@NotBlank(message = "연락처를 입력해주세요.")
+			@Pattern(regexp = "^[0-9+\\-\\s()]{8,20}$", message = "연락처는 숫자와 하이픈 중심으로 8~20자 내에서 입력해주세요.") String phone,
 			@NotNull(message = "개인정보 수집 동의 여부를 확인해주세요.") @AssertTrue(message = "개인정보 수집에 동의해주세요.") Boolean privacyAgreed,
 			@NotNull(message = "약관 동의 여부를 확인해주세요.") @AssertTrue(message = "약관에 동의해주세요.") Boolean termsAgreed,
 			Boolean marketingAgreed

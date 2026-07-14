@@ -159,7 +159,7 @@
                   </label>
                 </div>
                 <label class="field">상담 내용
-                  <textarea name="message" placeholder="상담 내용을 입력해주세요."></textarea>
+                  <textarea name="message" placeholder="상담 내용을 입력해주세요." required></textarea>
                 </label>
                 <section class="agreement-panel compact" aria-label="개인정보 수집 동의">
                   <div class="agreement-list">
@@ -189,6 +189,7 @@
             <p id="cart-modal-message" class="muted">선택한 상품이 장바구니에 담겼습니다.</p>
             <div class="modal-actions">
               <a class="button primary" href="cart.html">장바구니로 이동</a>
+              <a class="button" href="products.html">상품 더보기</a>
               <button class="button" type="button" id="cart-modal-close">닫기</button>
             </div>
           </section>
@@ -540,7 +541,7 @@
           variantId: variant.id,
           contactName: data.contactName,
           contactPhone: data.contactPhone,
-          message: data.message || `${product.name} ${variant.variantName} ${selectedQuantity()}개 상담 요청`,
+          message: data.message,
           privacyAgreed: form.privacyAgreed.checked
         }
       });

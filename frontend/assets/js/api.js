@@ -528,7 +528,7 @@
               </label>
             </div>
             <label class="field">상담 내용
-              <textarea name="message" placeholder="필요한 자재, 수량, 현장 위치를 남겨주세요."></textarea>
+              <textarea name="message" placeholder="필요한 자재, 수량, 현장 위치를 남겨주세요." required></textarea>
             </label>
             <section class="agreement-panel compact" aria-label="개인정보 수집 동의">
               <div class="agreement-list">

@@ -1124,6 +1124,32 @@ label.field {
   font-size: 14px;
 }
 
+.delivery-date-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.delivery-undecided-check {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #d7dee7;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--muted);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.delivery-undecided-check input {
+  width: 16px;
+  height: 16px;
+}
+
 .search-history-field {
   position: relative;
 }

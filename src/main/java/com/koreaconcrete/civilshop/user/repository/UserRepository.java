@@ -1,6 +1,7 @@
 package com.koreaconcrete.civilshop.user.repository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -48,5 +49,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
 			@Param("roles") Collection<String> roles,
 			@Param("deletedStatus") UserStatus deletedStatus,
 			Pageable pageable
+	);
+
+	@Query("""
+			select distinct u.phone
+			from User u
+			join UserRole ur on ur.user = u
+			join ur.role r
+			where r.name in :roles
+			  and u.status = :status
+			  and u.phone is not null
+			""")
+	List<String> findPhoneNumbersByAnyRoleNameInAndStatus(
+			@Param("roles") Collection<String> roles,
+			@Param("status") UserStatus status
 	);
 }

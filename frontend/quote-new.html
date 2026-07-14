@@ -21,7 +21,13 @@
         <div class="field"><label>담당자명</label><input class="input" name="contactName" required></div>
         <div class="field"><label>연락처</label><input class="input" name="contactPhone" required></div>
         <div class="field"><label>현장주소</label><input class="input" name="siteAddress" required></div>
-        <div class="field"><label>희망납기</label><input class="input" type="date" name="requestedDeliveryDate"></div>
+        <div class="field quote-delivery-field">
+          <label for="requested-delivery-date">희망 납기</label>
+          <div class="delivery-date-control">
+            <input id="requested-delivery-date" class="input" type="date" name="requestedDeliveryDate" required>
+            <label class="delivery-undecided-check"><input type="checkbox" name="deliveryDateUndecided"> <span>미정</span></label>
+          </div>
+        </div>
         <div class="field"><label>요청사항(선택)</label><textarea name="memo"></textarea></div>
         <section class="agreement-panel compact" aria-label="개인정보 수집 동의">
           <div class="agreement-list">

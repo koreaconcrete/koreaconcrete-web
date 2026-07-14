@@ -222,6 +222,7 @@ class AuthServiceTest {
 				"01012345678",
 				"경기도 수원시",
 				null,
+				true,
 				"테스트",
 				true,
 				List.of(new QuoteItemRequest(fixtures.product.getId(), fixtures.variant.getId(), new BigDecimal("12")))

@@ -64,7 +64,9 @@
     if (!name) {
       messages.push("이름을 입력해주세요.");
     }
-    if (phone && !/^[0-9+\-\s()]{8,20}$/.test(phone)) {
+    if (!phone) {
+      messages.push("연락처를 입력해주세요.");
+    } else if (!/^[0-9+\-\s()]{8,20}$/.test(phone)) {
       messages.push("연락처는 숫자와 하이픈 중심으로 8~20자 내에서 입력해주세요.");
     }
     if (!form.termsAgreed.checked) {

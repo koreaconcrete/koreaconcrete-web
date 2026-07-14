@@ -96,6 +96,7 @@
           <h2>${app.escapeHtml(quote.requestNo)}</h2>
           <p>${app.escapeHtml(quote.companyName)} · ${app.escapeHtml(quote.contactName)} · ${app.escapeHtml(quote.contactPhone)}</p>
           <p class="muted">${app.escapeHtml(quote.siteAddress)}</p>
+          <p><strong>희망 납기</strong> ${app.escapeHtml(requestedDeliveryDateLabel(quote.requestedDeliveryDate))}</p>
           <select id="quote-status" class="input">
             ${quoteStatusValues.map((status) => `<option value="${status}"${statusMatches(status, quote.status) ? " selected" : ""}>${app.escapeHtml(quoteStatusOptionLabels[status])}</option>`).join("")}
           </select>
@@ -171,6 +172,10 @@
       return `<div class="line-item is-disabled">${content}</div>`;
     }
     return `<a class="line-item" href="product-detail.html?id=${app.escapeHtml(item.productId)}">${content}</a>`;
+  }
+
+  function requestedDeliveryDateLabel(value) {
+    return value || "미정";
   }
 
   document.addEventListener("DOMContentLoaded", () => {

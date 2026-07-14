@@ -74,6 +74,7 @@
   function bind() {
     const form = document.querySelector("#quote-form");
     if (!form) return;
+    bindDeliveryDateControls(form);
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const cart = await app.cartItems();
@@ -82,12 +83,19 @@
         return;
       }
       const data = Object.fromEntries(new FormData(form).entries());
+      const deliveryDateUndecided = form.deliveryDateUndecided.checked;
+      if (!data.requestedDeliveryDate && !deliveryDateUndecided) {
+        app.setState("#quote-state", "희망 납기일을 선택하거나 미정을 체크해주세요.", "error");
+        form.requestedDeliveryDate.focus();
+        return;
+      }
       const body = {
         companyName: data.companyName,
         contactName: data.contactName,
         contactPhone: data.contactPhone,
         siteAddress: data.siteAddress,
         requestedDeliveryDate: data.requestedDeliveryDate || null,
+        deliveryDateUndecided,
         memo: data.memo,
         privacyAgreed: form.privacyAgreed.checked
       };
@@ -98,6 +106,27 @@
         app.setState("#quote-state", error.message, "error");
       }
     });
+  }
+
+  function bindDeliveryDateControls(form) {
+    const dateInput = form.requestedDeliveryDate;
+    const undecidedInput = form.deliveryDateUndecided;
+    if (!dateInput || !undecidedInput) return;
+
+    function syncDeliveryDateState() {
+      const isUndecided = undecidedInput.checked;
+      dateInput.required = !isUndecided;
+      dateInput.disabled = isUndecided;
+      if (isUndecided) dateInput.value = "";
+    }
+
+    undecidedInput.addEventListener("change", syncDeliveryDateState);
+    dateInput.addEventListener("input", () => {
+      if (!dateInput.value || !undecidedInput.checked) return;
+      undecidedInput.checked = false;
+      syncDeliveryDateState();
+    });
+    syncDeliveryDateState();
   }
 
   async function prefillUserInfo() {

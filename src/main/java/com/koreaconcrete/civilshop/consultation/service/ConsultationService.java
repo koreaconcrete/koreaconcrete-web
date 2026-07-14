@@ -2,6 +2,7 @@ package com.koreaconcrete.civilshop.consultation.service;
 
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import com.koreaconcrete.civilshop.common.domain.ConsultationStatus;
 import com.koreaconcrete.civilshop.common.domain.ConsultationType;
 import com.koreaconcrete.civilshop.common.domain.ProductStatus;
 import com.koreaconcrete.civilshop.common.exception.BusinessException;
+import com.koreaconcrete.civilshop.common.notification.ConsultationCreatedEvent;
 import com.koreaconcrete.civilshop.common.security.UserPrincipal;
 import com.koreaconcrete.civilshop.consultation.dto.ConsultationDtos.ConsultationReplyRequest;
 import com.koreaconcrete.civilshop.consultation.dto.ConsultationDtos.ConsultationRequest;
@@ -23,7 +25,6 @@ import com.koreaconcrete.civilshop.consultation.repository.ConsultationRepositor
 import com.koreaconcrete.civilshop.product.entity.Product;
 import com.koreaconcrete.civilshop.product.entity.ProductVariant;
 import com.koreaconcrete.civilshop.product.service.ProductService;
-import com.koreaconcrete.civilshop.user.entity.User;
 import com.koreaconcrete.civilshop.user.service.UserService;
 
 @Service
@@ -33,17 +34,20 @@ public class ConsultationService {
 	private final ProductService productService;
 	private final UserService userService;
 	private final AuditService auditService;
+	private final ApplicationEventPublisher eventPublisher;
 
 	public ConsultationService(
 			ConsultationRepository consultationRepository,
 			ProductService productService,
 			UserService userService,
-			AuditService auditService
+			AuditService auditService,
+			ApplicationEventPublisher eventPublisher
 	) {
 		this.consultationRepository = consultationRepository;
 		this.productService = productService;
 		this.userService = userService;
 		this.auditService = auditService;
+		this.eventPublisher = eventPublisher;
 	}
 
 	@Transactional
@@ -67,7 +71,16 @@ public class ConsultationService {
 		consultation.setContactName(request.contactName());
 		consultation.setContactPhone(request.contactPhone());
 		consultation.setMessage(request.message());
-		return toResponse(consultationRepository.save(consultation));
+		ConsultationResponse response = toResponse(consultationRepository.save(consultation));
+		eventPublisher.publishEvent(new ConsultationCreatedEvent(
+				response.id(),
+				response.type(),
+				response.contactName(),
+				response.contactPhone(),
+				response.productName(),
+				response.message()
+		));
+		return response;
 	}
 
 	public PageResponse<ConsultationResponse> adminList(ConsultationStatus status, int page, int size) {

@@ -1,11 +1,13 @@
 package com.koreaconcrete.civilshop.quote.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -13,10 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.koreaconcrete.civilshop.common.api.PageResponse;
 import com.koreaconcrete.civilshop.common.audit.AuditService;
-import com.koreaconcrete.civilshop.common.domain.QuoteStatus;
 import com.koreaconcrete.civilshop.common.domain.ProductMediaType;
 import com.koreaconcrete.civilshop.common.domain.ProductStatus;
+import com.koreaconcrete.civilshop.common.domain.QuoteStatus;
 import com.koreaconcrete.civilshop.common.exception.BusinessException;
+import com.koreaconcrete.civilshop.common.notification.QuoteCreatedEvent;
 import com.koreaconcrete.civilshop.common.security.UserPrincipal;
 import com.koreaconcrete.civilshop.pricing.service.PricingService;
 import com.koreaconcrete.civilshop.product.entity.Product;
@@ -46,6 +49,7 @@ public class QuoteService {
 	private final PricingService pricingService;
 	private final UserService userService;
 	private final AuditService auditService;
+	private final ApplicationEventPublisher eventPublisher;
 
 	public QuoteService(
 			QuoteRequestRepository quoteRequestRepository,
@@ -54,7 +58,8 @@ public class QuoteService {
 			ProductMediaRepository productMediaRepository,
 			PricingService pricingService,
 			UserService userService,
-			AuditService auditService
+			AuditService auditService,
+			ApplicationEventPublisher eventPublisher
 	) {
 		this.quoteRequestRepository = quoteRequestRepository;
 		this.quoteItemRepository = quoteItemRepository;
@@ -63,6 +68,7 @@ public class QuoteService {
 		this.pricingService = pricingService;
 		this.userService = userService;
 		this.auditService = auditService;
+		this.eventPublisher = eventPublisher;
 	}
 
 	@Transactional
@@ -85,7 +91,19 @@ public class QuoteService {
 		for (QuoteItemRequest itemRequest : request.items()) {
 			quoteItemRepository.save(createItem(saved, itemRequest.productId(), itemRequest.variantId(), itemRequest.quantity(), null, null, null, null, null));
 		}
-		return toResponse(saved);
+		QuoteResponse response = toResponse(saved);
+		eventPublisher.publishEvent(new QuoteCreatedEvent(
+				response.id(),
+				response.requestNo(),
+				response.companyName(),
+				response.contactName(),
+				response.contactPhone(),
+				response.siteAddress(),
+				response.requestedDeliveryDate(),
+				quoteItemSummary(response.items()),
+				quoteTotalAmountLabel(response.items())
+		));
+		return response;
 	}
 
 	public PageResponse<QuoteResponse> me(UserPrincipal principal, int page, int size) {
@@ -269,6 +287,57 @@ public class QuoteService {
 				item.getTotalAmount(),
 				item.getNote()
 		);
+	}
+
+	private String quoteItemSummary(List<QuoteItemResponse> items) {
+		if (items == null || items.isEmpty()) {
+			return "-";
+		}
+		return items.stream()
+				.map((item) -> blankToDash(item.productName()) + " " + quantityLabel(item.quantity()) + "개")
+				.collect(java.util.stream.Collectors.joining(", "));
+	}
+
+	private String quoteTotalAmountLabel(List<QuoteItemResponse> items) {
+		if (items == null || items.isEmpty()) {
+			return "-";
+		}
+		BigDecimal total = BigDecimal.ZERO;
+		boolean hasUnpricedItem = false;
+		for (QuoteItemResponse item : items) {
+			BigDecimal lineAmount = lineAmount(item);
+			if (lineAmount == null) {
+				hasUnpricedItem = true;
+				continue;
+			}
+			total = total.add(lineAmount);
+		}
+		if (total.compareTo(BigDecimal.ZERO) <= 0 && hasUnpricedItem) {
+			return "견적문의";
+		}
+		String amount = String.format("%,d원", total.setScale(0, RoundingMode.HALF_UP).longValue());
+		return hasUnpricedItem ? amount + " (견적문의 품목 포함)" : amount;
+	}
+
+	private BigDecimal lineAmount(QuoteItemResponse item) {
+		if (item.totalAmount() != null) {
+			return BigDecimal.valueOf(item.totalAmount());
+		}
+		if (item.unitPrice() == null || item.quantity() == null) {
+			return null;
+		}
+		return BigDecimal.valueOf(item.unitPrice()).multiply(item.quantity());
+	}
+
+	private String quantityLabel(BigDecimal quantity) {
+		if (quantity == null) {
+			return "0";
+		}
+		return quantity.stripTrailingZeros().toPlainString();
+	}
+
+	private String blankToDash(String value) {
+		return value == null || value.isBlank() ? "-" : value.trim();
 	}
 
 	private String representativeImageUrl(Long productId) {

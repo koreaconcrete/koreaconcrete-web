@@ -118,6 +118,7 @@ public class CartService {
 				request.contactPhone(),
 				request.siteAddress(),
 				request.requestedDeliveryDate(),
+				request.deliveryDateUndecided(),
 				request.memo(),
 				request.privacyAgreed(),
 				items

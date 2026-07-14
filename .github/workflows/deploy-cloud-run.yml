@@ -61,6 +61,12 @@ jobs:
             APP_UPLOAD_PROVIDER=gcs
             APP_GCS_BUCKET=${{ vars.APP_GCS_BUCKET }}
             APP_GCS_PUBLIC_URL_PREFIX=https://storage.googleapis.com/${{ vars.APP_GCS_BUCKET }}
+            SMS_ENABLED=${{ vars.SMS_ENABLED || 'false' }}
+            NAVER_SENS_SERVICE_ID=${{ vars.NAVER_SENS_SERVICE_ID }}
+            NAVER_SENS_FROM=${{ vars.NAVER_SENS_FROM }}
+            NAVER_SENS_ENDPOINT=${{ vars.NAVER_SENS_ENDPOINT || 'https://sens.apigw.ntruss.com' }}
+            NAVER_SENS_ACCESS_KEY=${{ secrets.NAVER_SENS_ACCESS_KEY }}
+            NAVER_SENS_SECRET_KEY=${{ secrets.NAVER_SENS_SECRET_KEY }}
           secrets: |
             DB_PASSWORD=${{ vars.DB_PASSWORD_SECRET_NAME }}:latest
             JWT_SECRET=${{ vars.JWT_SECRET_SECRET_NAME }}:latest

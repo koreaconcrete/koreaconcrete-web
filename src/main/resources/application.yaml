@@ -36,6 +36,15 @@ app:
     gcs-public-url-prefix: ${APP_GCS_PUBLIC_URL_PREFIX:}
     max-image-size-bytes: ${APP_UPLOAD_MAX_IMAGE_SIZE_BYTES:8388608}
 
+sms:
+  enabled: ${SMS_ENABLED:false}
+  naver:
+    access-key: ${NAVER_SENS_ACCESS_KEY:}
+    secret-key: ${NAVER_SENS_SECRET_KEY:}
+    service-id: ${NAVER_SENS_SERVICE_ID:}
+    from: ${NAVER_SENS_FROM:}
+    endpoint: ${NAVER_SENS_ENDPOINT:https://sens.apigw.ntruss.com}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui/index.html
